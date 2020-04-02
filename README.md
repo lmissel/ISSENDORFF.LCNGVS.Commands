@@ -56,6 +56,7 @@ Function        Set-LCNGVSMacroServerEnabled                       0.0        IS
 Function        Set-LCNGVSMonitoringEvent                          0.0        ISSENDORFF.LCNGVS.Commands
 Function        Start-LCNGVSTrendLog                               0.0        ISSENDORFF.LCNGVS.Commands
 Function        Stop-LCNGVSTrendLog                                0.0        ISSENDORFF.LCNGVS.Commands
+...
 ```
 
 ## Hinweis
