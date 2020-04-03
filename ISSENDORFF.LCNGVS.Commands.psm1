@@ -3,7 +3,7 @@
 # PowerShell Module: ISSENDORFF.LCNGVS.Commands
 #
 # Das PowerShell Module ISSENDORFF.LCNGVS.Commands wurde entwickelt, um ueber die PowerShell 
-# Kommandos an den LCN-GVS Visualisierungssserver zu senden. Es bietet die gleichen Funktionalitaeten, wie 
+# Kommandos an den LCN-GVS Visualisierungssserver zu senden. Es bietet u.a. die gleichen Funktionalitaeten, wie 
 # die LCN-GVS-App und verwendet aussschliesslich die WebServices des LCN-GVS-Visualisierungssservers. Die 
 # LCN-GVS-App ist die Visualisierungsoberflaeche fuer iPhone, iPad und iPod Touch fuer das LCN-GVS "Globale 
 # Visualisierungs-System" der ISSENDORFF KG.
@@ -73,8 +73,24 @@ function Get-LCNGVSCommands
 # Benutzeran- bzw. Benutzerabmeldung, Benutzerrechte
 # -----------------------------------------------
 
-# Alias: 'Login-LCNGVSServer'
-function Connect-LCNGVS
+<#
+    .SYNOPSIS
+        Melden Sie sich an dem LCN-GVS Server an.    
+    .DESCRIPTION
+        Mit diesem Befehl melden Sie sich am LCN-GVS Server an.
+    .PARAMETER  Uri
+        Die Url des LCN-GVS Servers.
+    .PARAMETER  Credential
+        Benutzername und Password
+    .EXAMPLE
+        Connect-LCNGVS -Uri "http://access.lcn.de/LCNGVSDemo" -Credential (Microsoft.PowerShell.Security\Get-Credential)
+    .LINK
+        Disconnect-LCNGVS
+        Disconnect-LCNGVSAsync
+        Get-LCNGVSSession
+        Get-LCNGVSUserRights
+#>
+function Connect-LCNGVS # Alias: 'Login-LCNGVSServer'
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -115,6 +131,8 @@ function Connect-LCNGVS
 
     Begin
     {
+        Write-Verbose "Starting $($MyInvocation.Mycommand)"
+
         # Zuruecksetzen der SessionVariable
         $Script:LCNGVSSession = $null
 
@@ -126,15 +144,20 @@ function Connect-LCNGVS
     }
     Process
     {
+        # ServerCertificateValidationCallback
+        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
+        
         try
         {
             # WebService Authentification1
+            Write-Verbose "Step 1 - Benutzer wird angemeldet..."
             [Uri] $UriAuthentification1 = $Uri.AbsoluteUri + "/WebServices/Authentification1.asmx?wsdl" # Uri erstellen
             $Script:authSvc = New-WebServiceProxy -Uri $UriAuthentification1 -Namespace "LCNGVS.Authentification" # WebProxy erstellen
             $Script:authSvc.CookieContainer = New-Object System.Net.CookieContainer # Cookies zwischenspeichern
             $Script:LCNGVSSession = $Script:authSvc.Login($Credential.UserName, $Credential.GetNetworkCredential().Password, $CreatePersistentCookie) # Anmeldung
 
             # EventHandler erzeugen
+            Write-Verbose "Step 2 - Registriere Ereignishandler in der PowerShell..."
             Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginCompleted" -Action {
                 (New-Event -SourceIdentifier "LoginCompleted" -Sender $args[0] -EventArguments $args[1])
             } | Out-Null
@@ -163,6 +186,7 @@ function Connect-LCNGVS
             { 
                 #region Logs1
                 # WSDL herunterladen...
+                Write-Verbose "Step 3 - Verbindung zum WebService Log1 wird hergestellt..."
                 [Uri] $UriLogs1 = $Uri.AbsoluteUri + "/WebServices/Logs1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriLogs1
                 $output | Set-Content -Path "$env:TEMP\Logs1.wsdl"
@@ -170,6 +194,7 @@ function Connect-LCNGVS
                 $Script:Logs1Svc.CookieContainer = $Script:authSvc.CookieContainer
                 
                 # EventHandler erzeugen
+                Write-Verbose "Step 4 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogLcnGvsCompleted" -Action {
                     (New-Event -SourceIdentifier "GetLogLcnGvsCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -198,6 +223,7 @@ function Connect-LCNGVS
 
                 #region Status1
                 # WSDL herunterladen...
+                Write-Verbose "Step 5 - Verbindung zum WebService Service1 wird hergestellt..."
                 [Uri] $UriStatus1 = $Uri.AbsoluteUri + "/WebServices/Status1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriStatus1
                 $output | Set-Content -Path "$env:TEMP\Status1.wsdl"
@@ -205,6 +231,7 @@ function Connect-LCNGVS
                 $Script:Status1Svc.CookieContainer = $Script:authSvc.CookieContainer
 
                 # EventHandler erzeugen
+                Write-Verbose "Step 6 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:Status1Svc -EventName "GetStatusCompleted" -Action {
                     (New-Event -SourceIdentifier "GetStatusCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -213,6 +240,7 @@ function Connect-LCNGVS
 
                 #region MacroServer1
                 # WSDL herunterladen...
+                Write-Verbose "Step 7 - Verbindung zum WebService MacroService1 wird hergestellt..."
                 [Uri] $UriMacroServer1 = $Uri.AbsoluteUri + "/WebServices/MacroServer1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriMacroServer1
                 $output | Set-Content -Path "$env:TEMP\MacroServer1.wsdl"
@@ -220,6 +248,7 @@ function Connect-LCNGVS
                 $Script:MacroServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
 
                 # EventHandler erzeugen
+                Write-Verbose "Step 8 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "IsEnabledCompleted" -Action {
                     (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -240,6 +269,7 @@ function Connect-LCNGVS
 
                 #region MonitoringServer1
                 # WSDL herunterladen...
+                Write-Verbose "Step 9 - Verbindung zum WebService MonitoringServer1 wird hergestellt..."
                 [Uri] $UriMonitoringServer1 = $Uri.AbsoluteUri + "/WebServices/MonitoringServer1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriMonitoringServer1
                 $output | Set-Content -Path "$env:TEMP\MonitoringServer1.wsdl"
@@ -247,6 +277,7 @@ function Connect-LCNGVS
                 $Script:MonitoringServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
 
                 # EventHandler erzeugen
+                Write-Verbose "Step 10 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "IsEnabledCompleted" -Action {
                     (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -319,12 +350,14 @@ function Connect-LCNGVS
 
                 #region Tableau1
                 # WSDL herunterladen...
+                Write-Verbose "Step 11 - Verbindung zum WebService Tableau1 wird hergestellt..."
                 [Uri] $UriTableau1 = $Uri.AbsoluteUri + "/WebServices/Tableau1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriTableau1
                 $output | Set-Content -Path "$env:TEMP\Tableau1.wsdl"
                 $Script:Tableau1Svc = New-WebServiceProxy -Uri "$env:TEMP\Tableau1.wsdl" -Namespace "LCNGVS.Tableau"
                 $Script:Tableau1Svc.CookieContainer = $Script:authSvc.CookieContainer
 
+                Write-Verbose "Step 12 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTableausCompleted" -Action {
                     (New-Event -SourceIdentifier "GetTableausCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -381,6 +414,7 @@ function Connect-LCNGVS
 
                 #region Timer1
                 # WSDL herunterladen...
+                Write-Verbose "Step 13 - Verbindung zum WebService Timer1 wird hergestellt..."
                 [Uri] $UriTimer1 = $Uri.AbsoluteUri + "/WebServices/Timer1.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriTimer1
                 $output | Set-Content -Path "$env:TEMP\Timer1.wsdl"
@@ -388,6 +422,7 @@ function Connect-LCNGVS
                 $Script:Timer1Svc.CookieContainer = $Script:authSvc.CookieContainer
 
                 # EventHandler erzeugen
+                Write-Verbose "Step 14 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "IsEnabledCompleted" -Action {
                     (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -412,6 +447,7 @@ function Connect-LCNGVS
 
                 #region AppSiri
                 # WSDL herunterladen...
+                Write-Verbose "Step 15 - Verbindung zum WebService AppSiri wird hergestellt..."
                 [Uri] $UriAppSiri = $Uri.AbsoluteUri + "/WebServices/AppSiri.asmx?wsdl"
                 $output = Receive-WSDLFile -Uri $UriAppSiri
                 $output | Set-Content -Path "$env:TEMP\AppSiri.wsdl"
@@ -419,6 +455,7 @@ function Connect-LCNGVS
                 $Script:AppSiriSvc.CookieContainer = $Script:authSvc.CookieContainer
 
                 # EventHandler erzeugen
+                Write-Verbose "Step 16 - Registriere Ereignishandler in der PowerShell..."
                 Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "LoaddicCompleted" -Action {
                     (New-Event -SourceIdentifier "LoaddicCompleted" -Sender $args[0] -EventArguments $args[1])
                 } | Out-Null
@@ -461,11 +498,22 @@ function Connect-LCNGVS
     }
     End
     {
+        Write-Verbose "Ending $($MyInvocation.Mycommand)"
     }
 }
 
-# Alias: 'Logout-LCNGVSServer'
-function Disconnect-LCNGVS
+<#
+    .SYNOPSIS
+        Melden Sie sich vom LCN-GVS Server ab.    
+    .DESCRIPTION
+        Mit diesem Befehl melden Sie sich vom LCN-GVS Server ab.
+    .EXAMPLE
+        Disconnect-LCNGVS
+    .LINK
+        Connect-LCNGVS
+        Disconnect-LCNGVSAsync
+#>
+function Disconnect-LCNGVS # Alias: 'Logout-LCNGVSServer'
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -479,6 +527,8 @@ function Disconnect-LCNGVS
 
     Begin
     {
+        Write-Verbose "Starting $($MyInvocation.Mycommand)"
+
         if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
     }
     Process
@@ -509,11 +559,24 @@ function Disconnect-LCNGVS
     }
     End
     {
+        Write-Verbose "Ending $($MyInvocation.Mycommand)"
     }
 }
 
-# Alias: 'Logout-LCNGVSServerAsync'
-function Disconnect-LCNGVSAsync
+<#
+    .SYNOPSIS
+        Melden Sie sich vom LCN-GVS Server ab.    
+    .DESCRIPTION
+        Mit diesem Befehl melden Sie sich vom LCN-GVS Server ab.
+    .EXAMPLE
+        Disconnect-LCNGVSAsync
+    .LINK
+        Connect-LCNGVS
+        Disconnect-LCNGVS
+        Get-LCNGVSSession
+        Get-LCNGVSUserRights
+#>
+function Disconnect-LCNGVSAsync # Alias: 'Logout-LCNGVSServerAsync'
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -527,6 +590,8 @@ function Disconnect-LCNGVSAsync
 
     Begin
     {
+        Write-Verbose "Starting $($MyInvocation.Mycommand)"
+
         if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
     }
     Process
@@ -552,11 +617,23 @@ function Disconnect-LCNGVSAsync
     }
     End
     {
+        Write-Verbose "Ending $($MyInvocation.Mycommand)"
     }
 }
 
-# Alias: 'Get-LoginResult'
-function Get-LCNGVSSession
+<#
+    .SYNOPSIS
+        Ruft die Sitzungsinformationen ab.    
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die aktuelle Sitzungsinformation anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSSession
+    .LINK
+        Connect-LCNGVS
+        Disconnect-LCNGVSAsync
+        Get-LCNGVSUserRights
+#>
+function Get-LCNGVSSession # Alias: 'Get-LoginResult'
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
         SupportsShouldProcess=$true, 
@@ -598,8 +675,19 @@ function Get-LCNGVSSession
     }
 }
 
-# Alias: 'Get-UserRights'
-function Get-LCNGVSUserRights
+<#
+    .SYNOPSIS
+        Ruft Ihre Benutzerrechte ab.    
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die aktuellen Benutzerrechte anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSUserRights
+    .LINK
+        Connect-LCNGVS
+        Disconnect-LCNGVSAsync
+        Get-LCNGVSSession
+#>
+function Get-LCNGVSUserRights # Alias: 'Get-UserRights'
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -649,6 +737,19 @@ function Get-LCNGVSUserRights
 # LCNGVS.Authentification.CustomData
 # -----------------------------------------------
 
+<#
+    .SYNOPSIS
+        Ruft Ihre kuerzlich geoeffneten Tableaus ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Liste der kuerzlich geoeffneten Tableaus des Benutzers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSRecentTableauList
+    .LINK
+        Get-LCNGVSLastTableauUri
+        Get-LCNGVSCustomData
+        Set-LCNGVSCustomData
+        New-LCNGVSCustomData
+#>
 function Get-LCNGVSRecentTableauList
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -695,6 +796,19 @@ function Get-LCNGVSRecentTableauList
     }
 }
 
+<#
+    .SYNOPSIS
+        Ruft das letzte geoeffnete Tableau ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie das letzte geoeffneten Tableau des Benutzers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSLastTableauUri
+    .LINK
+        Get-LCNGVSRecentTableauList
+        Get-LCNGVSCustomData
+        Set-LCNGVSCustomData
+        New-LCNGVSCustomData
+#>
 function Get-LCNGVSLastTableauUri
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -741,6 +855,80 @@ function Get-LCNGVSLastTableauUri
     }
 }
 
+<#
+    .SYNOPSIS
+        Ruft Schnelltableaus des Benutzers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Schnelltableaus des Benutzers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSQuickTableauUri
+    .LINK
+        Get-LCNGVSRecentTableauList
+        Get-LCNGVSLastTableauUri
+        Get-LCNGVSCustomData
+        Set-LCNGVSCustomData
+        New-LCNGVSCustomData
+#>
+function Get-LCNGVSQuickTableauUri
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSLastTableauUri',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([LCNGVS.Authentification.StringProperty[]])]
+    Param(
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSLastTableauUri))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Strings = $Script:LCNGVSSession.CustomData.Strings[0].Value
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    $Strings | Where-Object -Property name -EQ -Value QuickTableauUri
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+<#
+    .SYNOPSIS
+        Ruft die Benutzerdaten des Benutzers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Benutzerdaten des Benutzers anzeigen lassen.
+        U.a. werden die kuerzlich geoeffneten Tableaus angezeigt, aber auch die Schnelltableaus.
+    .EXAMPLE
+        Get-LCNGVSCustomData
+    .LINK
+        Get-LCNGVSRecentTableauList
+        Get-LCNGVSLastTableauUri
+        Set-LCNGVSCustomData
+        New-LCNGVSCustomData
+#>
 function Get-LCNGVSCustomData
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -787,6 +975,20 @@ function Get-LCNGVSCustomData
     }
 }
 
+<#
+    .SYNOPSIS
+        Erstellt neue Benutzerdaten des Benutzers.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Benutzerdaten des Benutzers neu erstellen.
+        U.a. werden die kuerzlich geoeffneten Tableaus, aber auch die Schnelltableaus festgelegt.
+    .EXAMPLE
+        New-LCNGVSCustomData
+    .LINK
+        Get-LCNGVSRecentTableauList
+        Get-LCNGVSLastTableauUri
+        Get-LCNGVSCustomData
+        Set-LCNGVSCustomData 
+#>
 function New-LCNGVSCustomData
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -833,6 +1035,20 @@ function New-LCNGVSCustomData
     }
 }
 
+<#
+    .SYNOPSIS
+        Setzt die Benutzerdaten des Benutzers.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Benutzerdaten des Benutzers setzen lassen.
+        U.a. werden die kuerzlich geoeffneten Tableaus, aber auch die Schnelltableaus festgelegt.
+    .EXAMPLE
+        Set-LCNGVSCustomData -CustomData $CustomData
+    .LINK
+        Get-LCNGVSRecentTableauList
+        Get-LCNGVSLastTableauUri
+        Get-LCNGVSCustomData
+        New-LCNGVSCustomData
+#>
 function Set-LCNGVSCustomData
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -881,6 +1097,16 @@ function Set-LCNGVSCustomData
 # LCNGVS.Authentification.ServerInfo
 # -----------------------------------------------
 
+<#
+    .SYNOPSIS
+        Ruft die Informationen des LCN-GVS-Servers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Informationen des LCN-GVS-Servers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerInfo
+    .LINK
+        Get-LCNGVSServerInfoAsync
+#>
 function Get-LCNGVSServerInfo
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -888,7 +1114,7 @@ function Get-LCNGVSServerInfo
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
                   ConfirmImpact='Medium')]
-    [Alias('svrinfo')]
+    [Alias('Get-ServerInfo')]
     [OutputType([LCNGVS.Authentification.ServerInfo])]
     Param(
     )
@@ -927,6 +1153,16 @@ function Get-LCNGVSServerInfo
     }
 }
 
+<#
+    .SYNOPSIS
+        Ruft die Informationen des LCN-GVS-Servers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Informationen des LCN-GVS-Servers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerInfoAsync
+    .LINK
+        Get-LCNGVSServerInfo
+#>
 function Get-LCNGVSServerInfoAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -934,7 +1170,7 @@ function Get-LCNGVSServerInfoAsync
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
                   ConfirmImpact='Medium')]
-    [Alias('svrinfoa')]
+    [Alias('Get-ServerInfoAsync')]
     [OutputType([LCNGVS.Authentification.ServerInfo])]
     Param(
     )
@@ -976,8 +1212,19 @@ function Get-LCNGVSServerInfoAsync
 # -----------------------------------------------
 #region WebService: Status
 
-# Alias: Get-Status
-function Get-LCNGVSServerStatus
+<#
+    .SYNOPSIS
+        Ruft den Status des LCN-GVS-Servers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den Status des LCN-GVS-Servers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerStatus
+    .LINK
+        Get-LCNGVSServerStatusAsync
+        Get-LCNGVSServerPluginInfo
+        Get-LCNGVSServerLcnBusConnectionState
+#>
+function Get-LCNGVSServerStatus # Alias: Get-Status
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -1024,8 +1271,19 @@ function Get-LCNGVSServerStatus
     }
 }
 
-# Alias: Get-StatusAsync
-function Get-LCNGVSServerStatusAsync
+<#
+    .SYNOPSIS
+        Ruft den Status des LCN-GVS-Servers ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den Status des LCN-GVS-Servers anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerStatusAsync
+    .LINK
+        Get-LCNGVSServerStatus
+        Get-LCNGVSServerPluginInfo
+        Get-LCNGVSServerLcnBusConnectionState
+#>
+function Get-LCNGVSServerStatusAsync # Alias: Get-StatusAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -1068,8 +1326,19 @@ function Get-LCNGVSServerStatusAsync
     }
 }
 
-# Alias: Get-PlugInfo
-function Get-LCNGVSServerPluginInfo
+<#
+    .SYNOPSIS
+        Ruft Informationen ueber die installierten Plugins ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie Informationen ueber die installierten Plugins, wie beispielsweise die Lizenzen, anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerPluginInfo
+    .LINK
+        Get-LCNGVSServerStatus
+        Get-LCNGVSServerStatusAsync
+        Get-LCNGVSServerLcnBusConnectionState
+#>
+function Get-LCNGVSServerPluginInfo # Alias: Get-PluginInfo
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -1137,8 +1406,19 @@ function Get-LCNGVSServerPluginInfo
     }
 }
 
-# Alias: Get-LcnBusConnectionState
-function Get-LCNGVSServerLcnBusConnectionState
+<#
+    .SYNOPSIS
+        Ruft Informationen ueber die Verbindung des LCN-Busses ab.   
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie Informationen ueber die Verbindung des LCN-Busses anzeigen lassen.
+    .EXAMPLE
+        Get-LCNGVSServerPluginInfo
+    .LINK
+        Get-LCNGVSServerStatus
+        Get-LCNGVSServerStatusAsync
+        Get-LCNGVSServerLcnBusConnectionState
+#>
+function Get-LCNGVSServerLcnBusConnectionState # Alias: Get-LcnBusConnectionState
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -2611,6 +2891,15 @@ function Get-LCNGVSTrendLogValuesMultiple
 # -----------------------------------------------
 #region WebService: MonitoringServer
 
+# -----------------------------------------------
+# MonitoringEvent - Ereignisse (benoetigt Lizenzen)
+# -----------------------------------------------
+
+function New-LCNGVSMonitoringEvent
+{
+    throw "This function is not implemented."
+}
+
 function Get-LCNGVSMonitoringEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -2622,6 +2911,20 @@ function Get-LCNGVSMonitoringEvent
     [OutputType([LCNGVS.MonitoringServer.MonitoringEvent[]])]
     param
     (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [SupportsWildcards()]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $Id,
+
+        [Parameter(Position=0,
+                   ParameterSetName='Default')]
+        [Switch] $all
     )
 
     Begin
@@ -2636,11 +2939,22 @@ function Get-LCNGVSMonitoringEvent
             {
                 try
                 {            
-                    $Script:MonitoringServer1Svc.GetMonitoringEvents()
+                    $Events = $Script:MonitoringServer1Svc.GetMonitoringEvents()
                 }
                 catch [System.Exception]
                 {
                     Write-Error $_
+                }
+                finally
+                {
+                    if ($pscmdlet.ParameterSetName -eq 'Id')
+                    {
+                        $Events | Where-Object -Property id -like -Value $Id
+                    }
+                    else
+                    {
+                        $Events
+                    }
                 }
             }
             else
@@ -2654,62 +2968,26 @@ function Get-LCNGVSMonitoringEvent
     }    
 }
 
-function Get-LCNGVSMonitoringActionList
+function Set-LCNGVSMonitoringEvent # Alias: Add-LCNGVSMonitoringEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSMonitoringActions',
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Set-LCNGVSTimerEvent',
                   ConfirmImpact='Medium')]
-    [Alias()]
-    [OutputType([LCNGVS.MonitoringServer.AMonitoringAction[]])]
-    param
-    (
-    )
-
-    Begin
-    {
-        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
-    }
-    Process
-    {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Get Monitoring Events"))
-        {
-            if ($Script:LCNGVSSession.IsSuccess)
-            {
-                try
-                {            
-                    $Script:MonitoringServer1Svc.GetMonitoringActions()
-                }
-                catch [System.Exception]
-                {
-                    Write-Error $_
-                }
-            }
-            else
-            {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
-            }
-        }
-    }
-    End
-    {
-    }    
-}
-
-function Remove-LCNGVSMonitoringActionList
-{
-    [CmdletBinding(DefaultParameterSetName='Default', 
-                  SupportsShouldProcess=$true, 
-                  PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSMonitoringActions',
-                  ConfirmImpact='Medium')]
-    [Alias()]
+    [Alias('Add-LCNGVSMonitoringEvent')]
     [OutputType([bool])]
     param
     (
-        [String] $Id,
-        [bool] $ForceDeletion
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [LCNGVS.MonitoringServer.MonitoringEvent] $Event
     )
 
     Begin
@@ -2718,13 +2996,13 @@ function Remove-LCNGVSMonitoringActionList
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Remove a monitoring Action"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Set Monitoring Event"))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
                 try
                 {            
-                    $Script:MonitoringServer1Svc.DeleteMonitoringAction($Id, $ForceDeletion)
+                    $Script:MonitoringServer1Svc.AddOrReplaceMonitoringEvent($Event)
                 }
                 catch [System.Exception]
                 {
@@ -2739,7 +3017,7 @@ function Remove-LCNGVSMonitoringActionList
     }
     End
     {
-    }    
+    }
 }
 
 function Remove-LCNGVSMonitoringEvent
@@ -2748,11 +3026,19 @@ function Remove-LCNGVSMonitoringEvent
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSMonitoringActions',
-                  ConfirmImpact='Medium')]
+                  ConfirmImpact='High')]
     [Alias()]
     [OutputType([bool])]
     param
     (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
         [String] $Id
     )
 
@@ -2786,10 +3072,193 @@ function Remove-LCNGVSMonitoringEvent
     }    
 }
 
+# -----------------------------------------------
+# MonitoringAction - Ausloeser
+# -----------------------------------------------
+
+function New-LCNGVSMonitoringAction
+{
+    throw "This function is not implemented."
+}
+
+function Get-LCNGVSMonitoringAction
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSMonitoringActions',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([LCNGVS.MonitoringServer.AMonitoringAction[]])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [SupportsWildcards()]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $Id,
+
+        [Parameter(Position=0,
+                   ParameterSetName='Default')]
+        [Switch] $all
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Get Monitoring Action"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Actions = $Script:MonitoringServer1Svc.GetMonitoringActions()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    if ($pscmdlet.ParameterSetName -eq 'Id')
+                    {
+                        $Actions | Where-Object -Property id -like -Value $Id
+                    }
+                    else
+                    {
+                        $Actions
+                    }
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
+
+function Set-LCNGVSMonitoringAction # Alias: Add-LCNGVSMonitoringAction
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Set-LCNGVSMonitoringAction',
+                  ConfirmImpact='Medium')]
+    [Alias('Add-LCNGVSMonitoringAction')]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [LCNGVS.MonitoringServer.AMonitoringAction] $Action
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Set Monitoring Action"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:MonitoringServer1Svc.AddOrReplaceMonitoringAction($Action)
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+function Remove-LCNGVSMonitoringAction
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSMonitoringActions',
+                  ConfirmImpact='High')]
+    [Alias()]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $Id
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", "Remove a monitoring Action"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:MonitoringServer1Svc.DeleteMonitoringAction($Id, $true)
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
+
+# -----------------------------------------------
+# Notification
+# -----------------------------------------------
+
 # ToDo:
 # -------------------
-# AddOrReplaceMonitoringAction()
-# AddOrReplaceMonitoringEvent()
 # DeregisterDevice()
 # DeregisterFromMonitoringEventPushNotifications()
 # GetPendingNotifications()
@@ -2803,6 +3272,70 @@ function Remove-LCNGVSMonitoringEvent
 # Webservice: Timer - Zeitsteuerung
 # -----------------------------------------------
 #region WebService: Timer
+
+function New-LCNGVSTimerEvent
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/New-LCNGVSTimerEvent',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([LCNGVS.Timer.TimerEvent])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [string] $Description,
+
+        [LCNGVS.Timer.Time[]] $Times,
+        [System.Object[]] $Actions,
+        [bool] $Enabled
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Timer", "Create a new timer event"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $TimerEvent = [LCNGVS.Timer.TimerEvent]::new()
+                    $TimerEvent.id = [GUID]::NewGuid()
+                    $TimerEvent.Times = $Times
+                    $TimerEvent.Action = $Actions
+                    $TimerEvent.Description = $Description
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    $TimerEvent
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }  
+}
 
 function Get-LCNGVSTimerEvent
 {
@@ -2872,8 +3405,7 @@ function Get-LCNGVSTimerEvent
     }    
 }
 
-# Alias: Add-LCNGVSTimerEvent
-function Set-LCNGVSTimerEvent
+function Set-LCNGVSTimerEvent # Alias: Add-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -2931,7 +3463,7 @@ function Remove-LCNGVSTimerEvent
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Remove-LCNGVSTimerEvent',
-                  ConfirmImpact='Medium')]
+                  ConfirmImpact='High')]
     [Alias()]
     [OutputType([bool])]
     param
@@ -3547,7 +4079,6 @@ function Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
     {
     }    
 }
-
 
 #endregion
 
