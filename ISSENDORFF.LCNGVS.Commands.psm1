@@ -56,46 +56,6 @@ function Receive-WSDLFile
     return $output
 }
 
-# Wird fuer Asyncrone Funktionen benoetigt...
-function New-ScriptBlockCallback 
-{
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param(
-        [parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [scriptblock]$Callback
-    )
-
-    # Is this type already defined?
-    if (-not ( 'CallbackEventBridge' -as [type]))
-    {
-        Add-Type @' 
-            using System; 
- 
-            public sealed class CallbackEventBridge { 
-                public event AsyncCallback CallbackComplete = delegate { }; 
- 
-                private CallbackEventBridge() {} 
- 
-                private void CallbackInternal(IAsyncResult result) { 
-                    CallbackComplete(result); 
-                } 
- 
-                public AsyncCallback Callback { 
-                    get { return new AsyncCallback(CallbackInternal); } 
-                } 
- 
-                public static CallbackEventBridge Create() { 
-                    return new CallbackEventBridge(); 
-                } 
-            } 
-'@
-    }
-    $bridge = [callbackeventbridge]::create()
-    Register-ObjectEvent -InputObject $bridge -EventName callbackcomplete -Action $Callback -MessageData $args > $null
-    $bridge.Callback
-}
-
 # Liefert alle Cmdlets des Modules
 function Get-LCNGVSCommands
 {
@@ -595,6 +555,7 @@ function Disconnect-LCNGVSAsync
     }
 }
 
+# Alias: 'Get-LoginResult'
 function Get-LCNGVSSession
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -602,7 +563,7 @@ function Get-LCNGVSSession
         PositionalBinding=$false,
         HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSSession',
         ConfirmImpact='Medium')]
-    [Alias()]
+    [Alias('Get-LoginResult')]
     [OutputType()]
     Param(
     )
@@ -637,6 +598,7 @@ function Get-LCNGVSSession
     }
 }
 
+# Alias: 'Get-UserRights'
 function Get-LCNGVSUserRights
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -644,7 +606,7 @@ function Get-LCNGVSUserRights
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSUserRights',
                   ConfirmImpact='Medium')]
-    [Alias('usrr')]
+    [Alias('Get-UserRights')]
     [OutputType([String[]])]
     Param(
     )
@@ -677,98 +639,6 @@ function Get-LCNGVSUserRights
                 Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
             }
         }
-    }
-    End
-    {
-    }
-}
-
-# -----------------------------------------------
-# LCNGVS.Authentification.ServerInfo
-# -----------------------------------------------
-
-function Get-LCNGVSServerInfo
-{
-    [CmdletBinding(DefaultParameterSetName='Default', 
-                  SupportsShouldProcess=$true, 
-                  PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
-                  ConfirmImpact='Medium')]
-    [Alias('svrinfo')]
-    [OutputType([LCNGVS.Authentification.ServerInfo])]
-    Param(
-    )
-
-    Begin
-    {
-        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
-    }
-    Process
-    {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
-        {
-            if ($Script:LCNGVSSession.IsSuccess)
-            {
-                try
-                {            
-                    $ServerInfo = $Script:authSvc.GetServerInfo()
-                }
-                catch [System.Exception]
-                {
-                    Write-Error $_
-                }
-                finally
-                {
-                    $ServerInfo
-                }
-            }
-            else
-            {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
-            }
-        }        
-    }
-    End
-    {
-    }
-}
-
-function Get-LCNGVSServerInfoAsync
-{
-    [CmdletBinding(DefaultParameterSetName='Default', 
-                  SupportsShouldProcess=$true, 
-                  PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
-                  ConfirmImpact='Medium')]
-    [Alias('svrinfoa')]
-    [OutputType([LCNGVS.Authentification.ServerInfo])]
-    Param(
-    )
-
-    Begin
-    {
-        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
-    }
-    Process
-    {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
-        {
-            if ($Script:LCNGVSSession.IsSuccess)
-            {
-                try
-                {            
-                    $Script:authSvc.GetServerInfoAsync()
-                }
-                catch [System.Exception]
-                {
-                    Write-Error $_
-                }
-            }
-            else
-            {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
-            }
-        }        
     }
     End
     {
@@ -1007,6 +877,98 @@ function Set-LCNGVSCustomData
     }
 }
 
+# -----------------------------------------------
+# LCNGVS.Authentification.ServerInfo
+# -----------------------------------------------
+
+function Get-LCNGVSServerInfo
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
+                  ConfirmImpact='Medium')]
+    [Alias('svrinfo')]
+    [OutputType([LCNGVS.Authentification.ServerInfo])]
+    Param(
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $ServerInfo = $Script:authSvc.GetServerInfo()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    $ServerInfo
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }        
+    }
+    End
+    {
+    }
+}
+
+function Get-LCNGVSServerInfoAsync
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerInfo',
+                  ConfirmImpact='Medium')]
+    [Alias('svrinfoa')]
+    [OutputType([LCNGVS.Authentification.ServerInfo])]
+    Param(
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:authSvc.GetServerInfoAsync()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }        
+    }
+    End
+    {
+    }
+}
+
 #endregion
 
 # -----------------------------------------------
@@ -1093,6 +1055,144 @@ function Get-LCNGVSServerStatusAsync
                 catch [System.Exception]
                 {
                     Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+# Alias: Get-PlugInfo
+function Get-LCNGVSServerPluginInfo
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerPluginInfo',
+                  ConfirmImpact='Medium')]
+    [Alias('Get-PluginInfo')]
+    [OutputType([LCNGVS.Status.PluginInfo[]])]
+    Param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Name')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
+        [String] $PlugInName,
+
+        [Parameter(Position=0,
+                   ParameterSetName='Default')]
+        [Switch] $all
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerPluginInfo))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $LCNStatus = $Script:Status1Svc.GetStatus()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    if ($PSCmdlet.ParameterSetName -eq "Name")
+                    {
+                        $LCNStatus.Plugins | Where-Object -Property name -Like -Value $PlugInName
+                    }
+                    else
+                    {
+                        $LCNStatus.Plugins
+                    }
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+# Alias: Get-LcnBusConnectionState
+function Get-LCNGVSServerLcnBusConnectionState
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSServerLcnBusConnectionState',
+                  ConfirmImpact='Medium')]
+    [Alias('Get-LcnBusConnectionState')]
+    [OutputType([LCNGVS.Status.LcnBusConnectionState[]])]
+    Param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Name')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
+        [String] $BusName,
+
+        [Parameter(Position=0,
+                   ParameterSetName='Default')]
+        [Switch] $all
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerPluginInfo))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $LCNStatus = $Script:Status1Svc.GetStatus()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    if ($PSCmdlet.ParameterSetName -eq "Name")
+                    {
+                        $LCNStatus.LcnBusConnectionStates | Where-Object -Property BusName -Like -Value $BusName
+                    }
+                    else
+                    {
+                        $LCNStatus.LcnBusConnectionStates
+                    }
                 }
             }
             else
@@ -1462,7 +1562,7 @@ function Get-LCNGVSTableauGroupInfo
     }
     Process
     {      
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "get TableauGroupInfo"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTableauGroupInfo))
         {   
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1498,14 +1598,14 @@ function Get-LCNGVSTableauGroupInfo
 }
 
 # Alias: Open-Tableau
-function Get-LCNGVSTableau
+function Open-LCNGVSTableau
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTableau',
                   ConfirmImpact='Medium')]
-    [Alias('Open-LCNGVSTableau','Open-Tableau')]
+    [Alias('Get-LCNGVSTableau','Open-Tableau')]
     [OutputType([LCNGVS.Tableau.Tableau])]
     Param
     (
@@ -1556,7 +1656,7 @@ function Get-LCNGVSTableau
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "get tableau with id [$($tableauId)] from group [$($tableauGroupName)]"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.OpenLCNGVSTableau))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1571,6 +1671,109 @@ function Get-LCNGVSTableau
                 finally
                 {
                     $Tableau
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+# Alias: Get-TableauControl
+function Get-LCNGVSTableauControl
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTableauControl',
+                  ConfirmImpact='Medium')]
+    [Alias('Get-TableauControl')]
+    [OutputType([LCNGVS.Tableau.Control])]
+    Param
+    (
+        # Hilfebeschreibung zu Param1
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $tableauGroupName,
+
+        # Hilfebeschreibung zu Param2
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $tableauId,
+
+        # Hilfebeschreibung zu Param1
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Uri')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $TableauUri,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=2,
+                   ParameterSetName='Default')]
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Uri')]
+        [LCNGVS.Tableau.ControlType] $ControlType = [LCNGVS.Tableau.ControlType]::Unknown
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+
+        if ($pscmdlet.ParameterSetName -eq 'Uri')
+        { 
+            [String[]] $string = $TableauUri.Split('\')
+            $tableauGroupName = $string[0]
+            $tableauId = $string[1]
+        }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTableauControl))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Tableau = $Script:Tableau1Svc.OpenTableau($tableauGroupName, $tableauId)
+                    $Controls = $Tableau.Controls | Where-Object -Property type -EQ -Value $ControlType
+                    $Script:Tableau1Svc.CloseTableau($Tableau.tableauSessionId) | Out-Null
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    $Controls
                 }
             }
             else
@@ -1614,7 +1817,7 @@ function Close-LCNGVSTableau
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "close tableau"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.CloseLCNGVSTableau))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1638,15 +1841,15 @@ function Close-LCNGVSTableau
     }
 }
 
-# Alias: Get-Images
-function Get-LCNGVSImageList
+# Alias: Get-Image
+function Get-LCNGVSImage
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSImage',
                   ConfirmImpact='Medium')]
-    [Alias('Get-Images')]
+    [Alias('Get-Image')]
     [OutputType([LCNGVS.Tableau.Image[]])]
     Param
     (
@@ -1665,7 +1868,7 @@ function Get-LCNGVSImageList
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "get image"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "get a list form images"))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1687,6 +1890,66 @@ function Get-LCNGVSImageList
                 Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
             }
         }
+    }
+    End
+    {
+    }
+}
+
+# Alias: Save-Image
+function Export-LCNGVSImage
+{
+
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$true,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Export-LCNGVSImage',
+                  ConfirmImpact='Medium')]
+    [Alias('Save-Image')]
+    [OutputType()]
+    Param
+    (
+        # Hilfebeschreibung zu Param1
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$true,
+                   Position=0,
+                   ParameterSetName='Default')]
+        [string] $Path, # '.\Unknown.png'
+        
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$true,
+                   Position=1,
+                   ParameterSetName='Default')]
+        [string] $DataBase64,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$true,
+                   Position=0,
+                   ParameterSetName='Image')]
+        [LCNGVS.Tableau.Image] $Image
+    )
+
+    Begin
+    {
+        if ($PSCmdlet.ParameterSetName -eq 'Image')
+        {
+            $path = $Image.name.Split('/')[($Image.name.Split('/').Count -1)]
+            $path = '.\' + $path
+
+            $DataBase64 = $Image.DataBase64
+        }
+    }
+    Process
+    {
+    
+        $bytes = [Convert]::FromBase64String($DataBase64)
+        [IO.File]::WriteAllBytes($path, $bytes)
     }
     End
     {
@@ -1730,7 +1993,7 @@ function Get-LCNGVSControlUpdateList
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "poll updates"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.PollUpdates))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1926,7 +2189,7 @@ function Get-LCNGVSSupportedTrendLogSources
     }
     Process
     {        
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.LCNGVSSupportedTrendLogSources))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSSupportedTrendLogSources))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2130,7 +2393,7 @@ function Open-LCNGVSTrendLog
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.OpenLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2181,7 +2444,7 @@ function Close-LCNGVSTrendLog
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.CloseLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2252,7 +2515,7 @@ function Get-LCNGVSTrendLogValues
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLogValues))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2313,7 +2576,7 @@ function Get-LCNGVSTrendLogValuesMultiple
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLogValuesMultiple))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2344,7 +2607,7 @@ function Get-LCNGVSTrendLogValuesMultiple
 #endregion
 
 # -----------------------------------------------
-# Webservice: MonioringServer - Ereignismelder
+# Webservice: MonitoringServer - Ereignismelder
 # -----------------------------------------------
 #region WebService: MonitoringServer
 
@@ -2391,7 +2654,7 @@ function Get-LCNGVSMonitoringEvent
     }    
 }
 
-function Get-LCNGVSMonitoringActions
+function Get-LCNGVSMonitoringActionList
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -2434,7 +2697,7 @@ function Get-LCNGVSMonitoringActions
     }    
 }
 
-function Remove-LCNGVSMonitoringActions
+function Remove-LCNGVSMonitoringActionList
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -2533,6 +2796,186 @@ function Remove-LCNGVSMonitoringEvent
 # GetRegisteredDevice()
 # GetRegisteredServer()
 # ...
+
+#endregion
+
+# -----------------------------------------------
+# Webservice: Timer - Zeitsteuerung
+# -----------------------------------------------
+#region WebService: Timer
+
+function Get-LCNGVSTimerEvent
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTimerEvent',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([LCNGVS.Timer.TimerEvent[]])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [SupportsWildcards()]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $Id,
+
+        [Parameter(Position=0,
+                   ParameterSetName='Default')]
+        [Switch] $all
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Timer", "Get timer events"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Events = $Script:Timer1Svc.GetTimerEvents()
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    if ($pscmdlet.ParameterSetName -eq 'Id')
+                    {
+                        $Events | Where-Object -Property id -like -Value $Id
+                    }
+                    else
+                    {
+                        $Events
+                    }
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
+
+# Alias: Add-LCNGVSTimerEvent
+function Set-LCNGVSTimerEvent
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Set-LCNGVSTimerEvent',
+                  ConfirmImpact='Medium')]
+    [Alias('Add-LCNGVSTimerEvent')]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [LCNGVS.Timer.TimerEvent] $Event
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Timer", "Set a timer event"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:Timer1Svc.AddOrReplaceTimer($Event)
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
+
+function Remove-LCNGVSTimerEvent
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Remove-LCNGVSTimerEvent',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [string] $Id
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Timer", "remove timer event"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:Timer1Svc.DeleteTimer($Id)
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
 
 #endregion
 
@@ -3126,7 +3569,7 @@ function Get-LCNGVSLogEntry
         [DateTime] $StartDate,
         [datetime] $EndDate,
         
-        [ValidateSet("Server", "Access", "Macro", "Timer", "LCNGVS")]
+        [ValidateSet("LCN-GVS", "Ereignismelder", "Makro", "Zeitschaltuhr", "Benutzerinteraktionen")]
         [String] $LogType
     )
 
@@ -3146,11 +3589,11 @@ function Get-LCNGVSLogEntry
 
                     switch ($LogType)
                     {
-                        'Server' { $logs = $Script:Logs1Svc.GetLogLcnServer($StartDate,$EndDate) }
-                        'Access' { $logs = $Script:Logs1Svc.GetLogAccessControl($StartDate,$EndDate) }
-                        'Macro'  { $logs = $Script:Logs1Svc.GetLogMacroServer($StartDate,$EndDate) }
-                        'Timer'  { $logs = $Script:Logs1Svc.GetLogTimer($StartDate,$EndDate) }
-                        'LCNGVS' { $logs = $Script:Logs1Svc.GetLogLCNGVS($StartDate,$EndDate) }
+                        'LCN-GVS' { $logs = $Script:Logs1Svc.GetLogLcnServer($StartDate,$EndDate) }
+                        'Ereignismelder' { $logs = $Script:Logs1Svc.GetLogAccessControl($StartDate,$EndDate) }
+                        'Makro'  { $logs = $Script:Logs1Svc.GetLogMacroServer($StartDate,$EndDate) }
+                        'Zeitschaltuhr'  { $logs = $Script:Logs1Svc.GetLogTimer($StartDate,$EndDate) }
+                        'Benutzerinteraktionen' { $logs = $Script:Logs1Svc.GetLogLCNGVS($StartDate,$EndDate) }
                         Default  { $logs = $Script:Logs1Svc.GetLogLCNGVS($StartDate,$EndDate) }
                     }
 

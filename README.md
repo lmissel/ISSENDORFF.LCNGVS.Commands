@@ -1,6 +1,6 @@
 # ISSENDORFF.LCNGVS.Commands
 
-Das PowerShell Module ISSENDORFF.LCNGVS.Commands wurde entwickelt, um über die PowerShell Kommandos an den LCN-GVS Visualisierungsserver zu senden. Es bietet die gleichen Funktionalitäten, wie die [LCN-GVS-App](https://apps.apple.com/de/app/lcn-gvs/id646477852) und verwendet ausschließlich die WebServices des LCN-GVS-Visualisierungsservers. Die LCN-GVS-App ist die Visualisierungsoberfläche für iPhone, iPad und iPod Touch für das LCN-GVS "Globale Visualisierungs-System" der ISSENDORFF KG.
+Das PowerShell Module ISSENDORFF.LCNGVS.Commands wurde entwickelt, um über die PowerShell Kommandos an den LCN-GVS Visualisierungsserver zu senden. Es bietet u.a. die Funktionalitäten, wie die [LCN-GVS-App](https://apps.apple.com/de/app/lcn-gvs/id646477852) und verwendet ausschließlich die WebServices des LCN-GVS-Visualisierungsservers. Die LCN-GVS-App ist die Visualisierungsoberfläche für iPhone, iPad und iPod Touch für das LCN-GVS "Globale Visualisierungs-System" der ISSENDORFF KG.
 
 [Weitere Informationen zu LCN](https://www.lcn.eu/)
 
