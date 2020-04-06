@@ -1,6 +1,6 @@
 ConvertFrom-StringData @'
 ErrorMessage1				=	Sie muessen angemeldet sein, um diese Funktion ausfuehren zu koennen.
-ConnectLCNGVS				=	Sie werden mit dem Benutzer angemeldet.
+ConnectLCNGVS				=	Sie werden mit dem Benutzer [{0}] angemeldet.
 DisconnectLCNGVS			=	Sie werden abgemeldet.
 GetLCNGVSSession			=	Ruft die Sitzungsinformationen ab.
 GetLCNGVSUserRights			=	Ihre Benutzerrechte werden abgerufen.
@@ -11,8 +11,25 @@ GetLCNGVSCustomData			=	Ihre CustomData-Informationen werden abgerufen.
 NewLCNGVSCustomData         =   Es wird ein neues Objekt der Klasse erstellt.
 SetLCNGVSCustomData         =   Es werden die CustomData fuer den Benutzer ueberschrieben.
 GetLCNGVSServerStatus		=	Der aktuelle Serverstatus wird abgefragt.
+GetLCNGVSServerPluginInfo	=	Ruft die PlugIn-Informationen ab. (U.a. Lizenzen)
 SetLCNGVSMacroServerEnabled =   Setze des Status des Makroserver fest.
 GetLCNGVSMacro              =   Ruft eine Liste von Markos ab.
-InvokeLCNGVSMacro			=	Das Makro wird aufgerufen.
-InvokeLCNGVSButton			=	Sie rufen eine Schaltflaeche auf dem Tableau auf.
+InvokeLCNGVSMacro			=	Das Makro [{0}] wird aufgerufen.
+GetLCNGVSTableauGroupInfo	=	Ruft die Tableaugruppen ab.
+OpenLCNGVSTableau			=	Oeffnet eine neue TableauSession.
+CloseLCNGVSTableau			=	Schliesst die angegebene TableauSession.
+GetImages					=	Ruft die angegebenen Images ab.
+PollUpdates					=	Ruft den neuen Status der angegeben Controls ab.
+InvokeLCNGVSButton			=	Ruft die Schaltflaeche auf dem Tableau auf.
+InvokeLCNGVSDimmer			=	Stellt den Dimmer auf dem Tableau ein.
+GetLCNGVSSupportedTrendLogSources	=	Ruft aktuell verfuegbare TrendLog-Quellen auf den angegeben Modul ab.
+GetLCNGVSTrendLog			=	Ruft aktuell verfuegbare TrendLogs ab.
+ExportLCNGVSTrendLog		=	Ruft die angegebenen TrendLogs ab.
+OpenLCNGVSTrendLog			=	Oeffnet ein neuen TrendLog.
+CloseLCNGVSTrendLog			=	Schliesst einen angegebenen TrendLog.
+GetLCNGVSTrendLogValues		=	Ruft die Werte des angegeben TrendLog ab.
+GetLCNGVSTrendLogValuesMultiple	= Ruft multiple Werte des angegeben TrendLog ab.
+GetLCNGVSAppSiriItem		=	Ruft das SiriItemWebService-Dictionary ab.
+InvokeLCNGVSAppSiriCommand	=	Fuehrt den Sprachbefehl [{0},{1}] aus.
+GetLCNGVSLogEntry			=	Ruft die Log-Eintraege aus dem Logbuch [{0}] ab.
 '@

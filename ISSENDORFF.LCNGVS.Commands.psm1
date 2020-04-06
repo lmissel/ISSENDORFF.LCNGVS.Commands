@@ -26,7 +26,7 @@
 # Modulevariablen
 # -----------------------------------------------
 $Script:LCNGVSSession = $null
-$Script:LCNGVS_Dictionary = Import-LocalizedData
+$Script:LocalizedData = Import-LocalizedData
 
 # -----------------------------------------------
 # Private Funktionen und vieles mehr
@@ -144,355 +144,358 @@ function Connect-LCNGVS # Alias: 'Login-LCNGVSServer'
     }
     Process
     {
-        # ServerCertificateValidationCallback
-        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", ($Script:LocalizedData.ConnectLCNGVS -f $Credential.UserName)))
+        {
+            # ServerCertificateValidationCallback
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
         
-        try
-        {
-            # WebService Authentification1
-            Write-Verbose "Step 1 - Benutzer wird angemeldet..."
-            [Uri] $UriAuthentification1 = $Uri.AbsoluteUri + "/WebServices/Authentification1.asmx?wsdl" # Uri erstellen
-            $Script:authSvc = New-WebServiceProxy -Uri $UriAuthentification1 -Namespace "LCNGVS.Authentification" # WebProxy erstellen
-            $Script:authSvc.CookieContainer = New-Object System.Net.CookieContainer # Cookies zwischenspeichern
-            $Script:LCNGVSSession = $Script:authSvc.Login($Credential.UserName, $Credential.GetNetworkCredential().Password, $CreatePersistentCookie) # Anmeldung
-
-            # EventHandler erzeugen
-            Write-Verbose "Step 2 - Registriere Ereignishandler in der PowerShell..."
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginCompleted" -Action {
-                (New-Event -SourceIdentifier "LoginCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginSecureBeginCompleted" -Action {
-                (New-Event -SourceIdentifier "LoginSecureBeginCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginSecureEndCompleted" -Action {
-                (New-Event -SourceIdentifier "LoginSecureEndCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-            
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "LogoutCompleted" -Action {
-                (New-Event -SourceIdentifier "LogoutCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-            
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "GetServerInfoCompleted" -Action {
-                (New-Event -SourceIdentifier "GetServerInfoCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-
-            Register-ObjectEvent -InputObject $Script:authSvc -EventName "SetUserCustomDataCompleted" -Action {
-                (New-Event -SourceIdentifier "SetUserCustomDataCompleted" -Sender $args[0] -EventArguments $args[1])
-            } | Out-Null
-
-            if ($Script:LCNGVSSession.isSuccess)
-            { 
-                #region Logs1
-                # WSDL herunterladen...
-                Write-Verbose "Step 3 - Verbindung zum WebService Log1 wird hergestellt..."
-                [Uri] $UriLogs1 = $Uri.AbsoluteUri + "/WebServices/Logs1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriLogs1
-                $output | Set-Content -Path "$env:TEMP\Logs1.wsdl"
-                $Script:Logs1Svc = New-WebServiceProxy -Uri "$env:TEMP\Logs1.wsdl" -Namespace "LCNGVS.Logs"
-                $Script:Logs1Svc.CookieContainer = $Script:authSvc.CookieContainer
-                
-                # EventHandler erzeugen
-                Write-Verbose "Step 4 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogLcnGvsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogLcnGvsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogLcnServerCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogLcnServerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogAccessControlCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogAccessControlCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogMonitoringServerCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogMonitoringServerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogTimerCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogTimerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogMacroServerCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetLogMacroServerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-
-                #region Status1
-                # WSDL herunterladen...
-                Write-Verbose "Step 5 - Verbindung zum WebService Service1 wird hergestellt..."
-                [Uri] $UriStatus1 = $Uri.AbsoluteUri + "/WebServices/Status1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriStatus1
-                $output | Set-Content -Path "$env:TEMP\Status1.wsdl"
-                $Script:Status1Svc = New-WebServiceProxy -Uri "$env:TEMP\Status1.wsdl" -Namespace "LCNGVS.Status"
-                $Script:Status1Svc.CookieContainer = $Script:authSvc.CookieContainer
-
-                # EventHandler erzeugen
-                Write-Verbose "Step 6 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:Status1Svc -EventName "GetStatusCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetStatusCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-
-                #region MacroServer1
-                # WSDL herunterladen...
-                Write-Verbose "Step 7 - Verbindung zum WebService MacroService1 wird hergestellt..."
-                [Uri] $UriMacroServer1 = $Uri.AbsoluteUri + "/WebServices/MacroServer1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriMacroServer1
-                $output | Set-Content -Path "$env:TEMP\MacroServer1.wsdl"
-                $Script:MacroServer1Svc = New-WebServiceProxy -Uri "$env:TEMP\MacroServer1.wsdl" -Namespace "LCNGVS.MacroServer"
-                $Script:MacroServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
-
-                # EventHandler erzeugen
-                Write-Verbose "Step 8 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "IsEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "SetEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "GetMacrosCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetMacrosCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "ExecuteMacroCompleted" -Action {
-                    (New-Event -SourceIdentifier "ExecuteMacroCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-
-                #region MonitoringServer1
-                # WSDL herunterladen...
-                Write-Verbose "Step 9 - Verbindung zum WebService MonitoringServer1 wird hergestellt..."
-                [Uri] $UriMonitoringServer1 = $Uri.AbsoluteUri + "/WebServices/MonitoringServer1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriMonitoringServer1
-                $output | Set-Content -Path "$env:TEMP\MonitoringServer1.wsdl"
-                $Script:MonitoringServer1Svc = New-WebServiceProxy -Uri "$env:TEMP\MonitoringServer1.wsdl" -Namespace "LCNGVS.MonitoringServer"
-                $Script:MonitoringServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
-
-                # EventHandler erzeugen
-                Write-Verbose "Step 10 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "IsEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "SetEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RegisterOrReplaceDeviceCompleted" -Action {
-                    (New-Event -SourceIdentifier "RegisterOrReplaceDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeregisterDeviceCompleted" -Action {
-                    (New-Event -SourceIdentifier "DeregisterDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetRegisteredDeviceCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetRegisteredDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetRegisteredServerCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetRegisteredServerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RegisterForMonitoringEventPushNotificationsCompleted" -Action {
-                    (New-Event -SourceIdentifier "RegisterForMonitoringEventPushNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeregisterFromMonitoringEventPushNotificationsCompleted" -Action {
-                    (New-Event -SourceIdentifier "DeregisterFromMonitoringEventPushNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetPendingNotificationsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetPendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RemovePendingNotificationsCompleted" -Action {
-                    (New-Event -SourceIdentifier "RemovePendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "IsReadPendingNotificationsCompleted" -Action {
-                    (New-Event -SourceIdentifier "IsReadPendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetMonitoringActionsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetMonitoringActionsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "AddOrReplaceMonitoringActionCompleted" -Action {
-                    (New-Event -SourceIdentifier "AddOrReplaceMonitoringActionCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeleteMonitoringActionCompleted" -Action {
-                    (New-Event -SourceIdentifier "DeleteMonitoringActionCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetMonitoringEventsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetMonitoringEventsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "AddOrReplaceMonitoringEventCompleted" -Action {
-                    (New-Event -SourceIdentifier "AddOrReplaceMonitoringEventCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeleteMonitoringEventCompleted" -Action {
-                    (New-Event -SourceIdentifier "DeleteMonitoringEventCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-                                
-                #endregion
-
-                #region Tableau1
-                # WSDL herunterladen...
-                Write-Verbose "Step 11 - Verbindung zum WebService Tableau1 wird hergestellt..."
-                [Uri] $UriTableau1 = $Uri.AbsoluteUri + "/WebServices/Tableau1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriTableau1
-                $output | Set-Content -Path "$env:TEMP\Tableau1.wsdl"
-                $Script:Tableau1Svc = New-WebServiceProxy -Uri "$env:TEMP\Tableau1.wsdl" -Namespace "LCNGVS.Tableau"
-                $Script:Tableau1Svc.CookieContainer = $Script:authSvc.CookieContainer
-
-                Write-Verbose "Step 12 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTableausCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetTableausCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "OpenTableauCompleted" -Action {
-                    (New-Event -SourceIdentifier "OpenTableauCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "CloseTableauCompleted" -Action {
-                    (New-Event -SourceIdentifier "CloseTableauCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetImagesCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetImagesCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "PollUpdatesCompleted" -Action {
-                    (New-Event -SourceIdentifier "PollUpdatesCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "SubmitButtonCompleted" -Action {
-                    (New-Event -SourceIdentifier "SubmitButtonCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "SubmitDimmerCompleted" -Action {
-                    (New-Event -SourceIdentifier "SubmitDimmerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetSupportedTrendLogSourcesCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetSupportedTrendLogSourcesCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetTrendLogsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "CloseTrendLogCompleted" -Action {
-                    (New-Event -SourceIdentifier "CloseTrendLogCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "OpenTrendLogCompleted" -Action {
-                    (New-Event -SourceIdentifier "OpenTrendLogCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogValuesCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetTrendLogValuesCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogValuesMultipleCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetTrendLogValuesMultipleCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-
-                #region Timer1
-                # WSDL herunterladen...
-                Write-Verbose "Step 13 - Verbindung zum WebService Timer1 wird hergestellt..."
-                [Uri] $UriTimer1 = $Uri.AbsoluteUri + "/WebServices/Timer1.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriTimer1
-                $output | Set-Content -Path "$env:TEMP\Timer1.wsdl"
-                $Script:Timer1Svc = New-WebServiceProxy -Uri "$env:TEMP\Timer1.wsdl" -Namespace "LCNGVS.Timer"
-                $Script:Timer1Svc.CookieContainer = $Script:authSvc.CookieContainer
-
-                # EventHandler erzeugen
-                Write-Verbose "Step 14 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "IsEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "SetEnabledCompleted" -Action {
-                    (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "GetTimerEventsCompleted" -Action {
-                    (New-Event -SourceIdentifier "GetTimerEventsCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "AddOrReplaceTimerCompleted" -Action {
-                    (New-Event -SourceIdentifier "AddOrReplaceTimerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "DeleteTimerCompleted" -Action {
-                    (New-Event -SourceIdentifier "DeleteTimerCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-
-                #region AppSiri
-                # WSDL herunterladen...
-                Write-Verbose "Step 15 - Verbindung zum WebService AppSiri wird hergestellt..."
-                [Uri] $UriAppSiri = $Uri.AbsoluteUri + "/WebServices/AppSiri.asmx?wsdl"
-                $output = Receive-WSDLFile -Uri $UriAppSiri
-                $output | Set-Content -Path "$env:TEMP\AppSiri.wsdl"
-                $Script:AppSiriSvc = New-WebServiceProxy -Uri "$env:TEMP\AppSiri.wsdl" -Namespace "LCNGVS.AppSiri"
-                $Script:AppSiriSvc.CookieContainer = $Script:authSvc.CookieContainer
-
-                # EventHandler erzeugen
-                Write-Verbose "Step 16 - Registriere Ereignishandler in der PowerShell..."
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "LoaddicCompleted" -Action {
-                    (New-Event -SourceIdentifier "LoaddicCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "CommandExecuteCompleted" -Action {
-                    (New-Event -SourceIdentifier "CommandExecuteCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "dimmingCommandCompleted" -Action {
-                    (New-Event -SourceIdentifier "dimmingCommandCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "changeBrightnessCommandCompleted" -Action {
-                    (New-Event -SourceIdentifier "changeBrightnessCommandCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "absRegulatorCommandCompleted" -Action {
-                    (New-Event -SourceIdentifier "absRegulatorCommandCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "relRegulatorCommandCompleted" -Action {
-                    (New-Event -SourceIdentifier "relRegulatorCommandCompleted" -Sender $args[0] -EventArguments $args[1])
-                } | Out-Null
-
-                #endregion
-            }
-        }
-        catch [System.Exception]
-        {
-            Write-Error $_
-        }
-        finally
-        {
-            if ($Script:LCNGVSSession)
+            try
             {
-                $Script:LCNGVSSession | Add-Member -MemberType NoteProperty -Name UserName -Value $Credential.UserName
-                $Script:LCNGVSSession
+                # WebService Authentification1
+                Write-Verbose "Step 1 - Benutzer wird angemeldet..."
+                [Uri] $UriAuthentification1 = $Uri.AbsoluteUri + "/WebServices/Authentification1.asmx?wsdl" # Uri erstellen
+                $Script:authSvc = New-WebServiceProxy -Uri $UriAuthentification1 -Namespace "LCNGVS.Authentification" # WebProxy erstellen
+                $Script:authSvc.CookieContainer = New-Object System.Net.CookieContainer # Cookies zwischenspeichern
+                $Script:LCNGVSSession = $Script:authSvc.Login($Credential.UserName, $Credential.GetNetworkCredential().Password, $CreatePersistentCookie) # Anmeldung
+
+                # EventHandler erzeugen
+                Write-Verbose "Step 2 - Registriere Ereignishandler in der PowerShell..."
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginCompleted" -Action {
+                    (New-Event -SourceIdentifier "LoginCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginSecureBeginCompleted" -Action {
+                    (New-Event -SourceIdentifier "LoginSecureBeginCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "LoginSecureEndCompleted" -Action {
+                    (New-Event -SourceIdentifier "LoginSecureEndCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+            
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "LogoutCompleted" -Action {
+                    (New-Event -SourceIdentifier "LogoutCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+            
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "GetServerInfoCompleted" -Action {
+                    (New-Event -SourceIdentifier "GetServerInfoCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+
+                Register-ObjectEvent -InputObject $Script:authSvc -EventName "SetUserCustomDataCompleted" -Action {
+                    (New-Event -SourceIdentifier "SetUserCustomDataCompleted" -Sender $args[0] -EventArguments $args[1])
+                } | Out-Null
+
+                if ($Script:LCNGVSSession.isSuccess)
+                { 
+                    #region Logs1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 3 - Verbindung zum WebService Log1 wird hergestellt..."
+                    [Uri] $UriLogs1 = $Uri.AbsoluteUri + "/WebServices/Logs1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriLogs1
+                    $output | Set-Content -Path "$env:TEMP\Logs1.wsdl"
+                    $Script:Logs1Svc = New-WebServiceProxy -Uri "$env:TEMP\Logs1.wsdl" -Namespace "LCNGVS.Logs"
+                    $Script:Logs1Svc.CookieContainer = $Script:authSvc.CookieContainer
+                
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 4 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogLcnGvsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogLcnGvsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogLcnServerCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogLcnServerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogAccessControlCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogAccessControlCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogMonitoringServerCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogMonitoringServerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogTimerCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogTimerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:Logs1Svc -EventName "GetLogMacroServerCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetLogMacroServerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+
+                    #region Status1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 5 - Verbindung zum WebService Service1 wird hergestellt..."
+                    [Uri] $UriStatus1 = $Uri.AbsoluteUri + "/WebServices/Status1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriStatus1
+                    $output | Set-Content -Path "$env:TEMP\Status1.wsdl"
+                    $Script:Status1Svc = New-WebServiceProxy -Uri "$env:TEMP\Status1.wsdl" -Namespace "LCNGVS.Status"
+                    $Script:Status1Svc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 6 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:Status1Svc -EventName "GetStatusCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetStatusCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+
+                    #region MacroServer1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 7 - Verbindung zum WebService MacroService1 wird hergestellt..."
+                    [Uri] $UriMacroServer1 = $Uri.AbsoluteUri + "/WebServices/MacroServer1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriMacroServer1
+                    $output | Set-Content -Path "$env:TEMP\MacroServer1.wsdl"
+                    $Script:MacroServer1Svc = New-WebServiceProxy -Uri "$env:TEMP\MacroServer1.wsdl" -Namespace "LCNGVS.MacroServer"
+                    $Script:MacroServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 8 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "IsEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "SetEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "GetMacrosCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetMacrosCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:MacroServer1Svc -EventName "ExecuteMacroCompleted" -Action {
+                        (New-Event -SourceIdentifier "ExecuteMacroCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+
+                    #region MonitoringServer1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 9 - Verbindung zum WebService MonitoringServer1 wird hergestellt..."
+                    [Uri] $UriMonitoringServer1 = $Uri.AbsoluteUri + "/WebServices/MonitoringServer1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriMonitoringServer1
+                    $output | Set-Content -Path "$env:TEMP\MonitoringServer1.wsdl"
+                    $Script:MonitoringServer1Svc = New-WebServiceProxy -Uri "$env:TEMP\MonitoringServer1.wsdl" -Namespace "LCNGVS.MonitoringServer"
+                    $Script:MonitoringServer1Svc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 10 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "IsEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "SetEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RegisterOrReplaceDeviceCompleted" -Action {
+                        (New-Event -SourceIdentifier "RegisterOrReplaceDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeregisterDeviceCompleted" -Action {
+                        (New-Event -SourceIdentifier "DeregisterDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetRegisteredDeviceCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetRegisteredDeviceCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetRegisteredServerCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetRegisteredServerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RegisterForMonitoringEventPushNotificationsCompleted" -Action {
+                        (New-Event -SourceIdentifier "RegisterForMonitoringEventPushNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeregisterFromMonitoringEventPushNotificationsCompleted" -Action {
+                        (New-Event -SourceIdentifier "DeregisterFromMonitoringEventPushNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetPendingNotificationsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetPendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "RemovePendingNotificationsCompleted" -Action {
+                        (New-Event -SourceIdentifier "RemovePendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "IsReadPendingNotificationsCompleted" -Action {
+                        (New-Event -SourceIdentifier "IsReadPendingNotificationsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetMonitoringActionsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetMonitoringActionsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "AddOrReplaceMonitoringActionCompleted" -Action {
+                        (New-Event -SourceIdentifier "AddOrReplaceMonitoringActionCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeleteMonitoringActionCompleted" -Action {
+                        (New-Event -SourceIdentifier "DeleteMonitoringActionCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "GetMonitoringEventsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetMonitoringEventsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "AddOrReplaceMonitoringEventCompleted" -Action {
+                        (New-Event -SourceIdentifier "AddOrReplaceMonitoringEventCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:MonitoringServer1Svc -EventName "DeleteMonitoringEventCompleted" -Action {
+                        (New-Event -SourceIdentifier "DeleteMonitoringEventCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+                                
+                    #endregion
+
+                    #region Tableau1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 11 - Verbindung zum WebService Tableau1 wird hergestellt..."
+                    [Uri] $UriTableau1 = $Uri.AbsoluteUri + "/WebServices/Tableau1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriTableau1
+                    $output | Set-Content -Path "$env:TEMP\Tableau1.wsdl"
+                    $Script:Tableau1Svc = New-WebServiceProxy -Uri "$env:TEMP\Tableau1.wsdl" -Namespace "LCNGVS.Tableau"
+                    $Script:Tableau1Svc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    Write-Verbose "Step 12 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTableausCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetTableausCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "OpenTableauCompleted" -Action {
+                        (New-Event -SourceIdentifier "OpenTableauCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "CloseTableauCompleted" -Action {
+                        (New-Event -SourceIdentifier "CloseTableauCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetImagesCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetImagesCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "PollUpdatesCompleted" -Action {
+                        (New-Event -SourceIdentifier "PollUpdatesCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "SubmitButtonCompleted" -Action {
+                        (New-Event -SourceIdentifier "SubmitButtonCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "SubmitDimmerCompleted" -Action {
+                        (New-Event -SourceIdentifier "SubmitDimmerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetSupportedTrendLogSourcesCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetSupportedTrendLogSourcesCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetTrendLogsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "CloseTrendLogCompleted" -Action {
+                        (New-Event -SourceIdentifier "CloseTrendLogCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "OpenTrendLogCompleted" -Action {
+                        (New-Event -SourceIdentifier "OpenTrendLogCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogValuesCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetTrendLogValuesCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Tableau1Svc -EventName "GetTrendLogValuesMultipleCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetTrendLogValuesMultipleCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+
+                    #region Timer1
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 13 - Verbindung zum WebService Timer1 wird hergestellt..."
+                    [Uri] $UriTimer1 = $Uri.AbsoluteUri + "/WebServices/Timer1.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriTimer1
+                    $output | Set-Content -Path "$env:TEMP\Timer1.wsdl"
+                    $Script:Timer1Svc = New-WebServiceProxy -Uri "$env:TEMP\Timer1.wsdl" -Namespace "LCNGVS.Timer"
+                    $Script:Timer1Svc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 14 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "IsEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "IsEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "SetEnabledCompleted" -Action {
+                        (New-Event -SourceIdentifier "SetEnabledCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "GetTimerEventsCompleted" -Action {
+                        (New-Event -SourceIdentifier "GetTimerEventsCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "AddOrReplaceTimerCompleted" -Action {
+                        (New-Event -SourceIdentifier "AddOrReplaceTimerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:Timer1Svc -EventName "DeleteTimerCompleted" -Action {
+                        (New-Event -SourceIdentifier "DeleteTimerCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+
+                    #region AppSiri
+                    # WSDL herunterladen...
+                    Write-Verbose "Step 15 - Verbindung zum WebService AppSiri wird hergestellt..."
+                    [Uri] $UriAppSiri = $Uri.AbsoluteUri + "/WebServices/AppSiri.asmx?wsdl"
+                    $output = Receive-WSDLFile -Uri $UriAppSiri
+                    $output | Set-Content -Path "$env:TEMP\AppSiri.wsdl"
+                    $Script:AppSiriSvc = New-WebServiceProxy -Uri "$env:TEMP\AppSiri.wsdl" -Namespace "LCNGVS.AppSiri"
+                    $Script:AppSiriSvc.CookieContainer = $Script:authSvc.CookieContainer
+
+                    # EventHandler erzeugen
+                    Write-Verbose "Step 16 - Registriere Ereignishandler in der PowerShell..."
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "LoaddicCompleted" -Action {
+                        (New-Event -SourceIdentifier "LoaddicCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "CommandExecuteCompleted" -Action {
+                        (New-Event -SourceIdentifier "CommandExecuteCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "dimmingCommandCompleted" -Action {
+                        (New-Event -SourceIdentifier "dimmingCommandCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "changeBrightnessCommandCompleted" -Action {
+                        (New-Event -SourceIdentifier "changeBrightnessCommandCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "absRegulatorCommandCompleted" -Action {
+                        (New-Event -SourceIdentifier "absRegulatorCommandCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    Register-ObjectEvent -InputObject $Script:AppSiriSvc -EventName "relRegulatorCommandCompleted" -Action {
+                        (New-Event -SourceIdentifier "relRegulatorCommandCompleted" -Sender $args[0] -EventArguments $args[1])
+                    } | Out-Null
+
+                    #endregion
+                }
+            }
+            catch [System.Exception]
+            {
+                Write-Error $_
+            }
+            finally
+            {
+                if ($Script:LCNGVSSession)
+                {
+                    $Script:LCNGVSSession | Add-Member -MemberType NoteProperty -Name UserName -Value $Credential.UserName
+                    $Script:LCNGVSSession
+                }
             }
         }
     }
@@ -533,7 +536,7 @@ function Disconnect-LCNGVS # Alias: 'Logout-LCNGVSServer'
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.DisconnectLCNGVS))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.DisconnectLCNGVS))
         {
             if ($Script:LCNGVSSession.isSuccess)
             {
@@ -553,7 +556,7 @@ function Disconnect-LCNGVS # Alias: 'Logout-LCNGVSServer'
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -596,7 +599,7 @@ function Disconnect-LCNGVSAsync # Alias: 'Logout-LCNGVSServerAsync'
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.DisconnectLCNGVS))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.DisconnectLCNGVS))
         {
             if ($Script:LCNGVSSession.isSuccess)
             {
@@ -611,7 +614,7 @@ function Disconnect-LCNGVSAsync # Alias: 'Logout-LCNGVSServerAsync'
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -651,7 +654,7 @@ function Get-LCNGVSSession # Alias: 'Get-LoginResult'
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSSession))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSSession))
         {
             if ($Script:LCNGVSSession.isSuccess)
             {
@@ -666,7 +669,7 @@ function Get-LCNGVSSession # Alias: 'Get-LoginResult'
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -705,7 +708,7 @@ function Get-LCNGVSUserRights # Alias: 'Get-UserRights'
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSUserRights))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSUserRights))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -724,7 +727,7 @@ function Get-LCNGVSUserRights # Alias: 'Get-UserRights'
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -768,7 +771,7 @@ function Get-LCNGVSRecentTableauList
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSRecentTableauList))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSRecentTableauList))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -787,7 +790,7 @@ function Get-LCNGVSRecentTableauList
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -827,7 +830,7 @@ function Get-LCNGVSLastTableauUri
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSLastTableauUri))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSLastTableauUri))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -846,7 +849,7 @@ function Get-LCNGVSLastTableauUri
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -887,7 +890,7 @@ function Get-LCNGVSQuickTableauUri
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSLastTableauUri))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSLastTableauUri))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -906,7 +909,7 @@ function Get-LCNGVSQuickTableauUri
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -947,7 +950,7 @@ function Get-LCNGVSCustomData
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSCustomData))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSCustomData))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -966,7 +969,7 @@ function Get-LCNGVSCustomData
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1007,7 +1010,7 @@ function New-LCNGVSCustomData
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.NewLCNGVSCustomData))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.NewLCNGVSCustomData))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1026,7 +1029,7 @@ function New-LCNGVSCustomData
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1069,7 +1072,7 @@ function Set-LCNGVSCustomData
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.SetLCNGVSCustomData))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.SetLCNGVSCustomData))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1084,7 +1087,7 @@ function Set-LCNGVSCustomData
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1125,7 +1128,7 @@ function Get-LCNGVSServerInfo
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSServerInfo))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1144,7 +1147,7 @@ function Get-LCNGVSServerInfo
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }        
     }
@@ -1181,7 +1184,7 @@ function Get-LCNGVSServerInfoAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LCNGVS_Dictionary.GetLCNGVSServerInfo))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.GetLCNGVSServerInfo))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1196,7 +1199,7 @@ function Get-LCNGVSServerInfoAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }        
     }
@@ -1243,7 +1246,7 @@ function Get-LCNGVSServerStatus # Alias: Get-Status
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerStatus))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LocalizedData.GetLCNGVSServerStatus))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1262,7 +1265,7 @@ function Get-LCNGVSServerStatus # Alias: Get-Status
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1302,7 +1305,7 @@ function Get-LCNGVSServerStatusAsync # Alias: Get-StatusAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerStatus))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LocalizedData.GetLCNGVSServerStatus))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1317,7 +1320,7 @@ function Get-LCNGVSServerStatusAsync # Alias: Get-StatusAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1371,7 +1374,7 @@ function Get-LCNGVSServerPluginInfo # Alias: Get-PluginInfo
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerPluginInfo))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LocalizedData.GetLCNGVSServerPluginInfo))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1397,7 +1400,7 @@ function Get-LCNGVSServerPluginInfo # Alias: Get-PluginInfo
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1451,7 +1454,7 @@ function Get-LCNGVSServerLcnBusConnectionState # Alias: Get-LcnBusConnectionStat
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LCNGVS_Dictionary.GetLCNGVSServerPluginInfo))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Status", $Script:LocalizedData.GetLCNGVSServerPluginInfo))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1477,7 +1480,7 @@ function Get-LCNGVSServerLcnBusConnectionState # Alias: Get-LcnBusConnectionStat
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1512,7 +1515,7 @@ function Get-LCNGVSMacroServerEnabled
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.GetLCNGVSMacroServerEnabled))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LocalizedData.GetLCNGVSMacroServerEnabled))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1527,7 +1530,7 @@ function Get-LCNGVSMacroServerEnabled
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1562,7 +1565,7 @@ function Set-LCNGVSMacroServerEnabled
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.SetLCNGVSMacroServerEnabled))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LocalizedData.SetLCNGVSMacroServerEnabled))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1577,7 +1580,7 @@ function Set-LCNGVSMacroServerEnabled
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1619,7 +1622,7 @@ function Get-LCNGVSMacro
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.GetLCNGVSMacro))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LocalizedData.GetLCNGVSMacro))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1645,7 +1648,7 @@ function Get-LCNGVSMacro
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1673,7 +1676,7 @@ function Get-LCNGVSMacroListAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.GetLCNGVSMacro))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LocalizedData.GetLCNGVSMacro))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1688,7 +1691,7 @@ function Get-LCNGVSMacroListAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1725,7 +1728,7 @@ function Invoke-LCNGVSMacro
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.InvokeLCNGVSMacro))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", ($Script:LocalizedData.InvokeLCNGVSMacro -f $macroName)))
         {   
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1740,7 +1743,7 @@ function Invoke-LCNGVSMacro
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1777,7 +1780,7 @@ function Invoke-LCNGVSMacroAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", $Script:LCNGVS_Dictionary.InvokeLCNGVSMacro))
+        if ($pscmdlet.ShouldProcess("LCNGVS.MacroServer", ($Script:LocalizedData.InvokeLCNGVSMacro -f $macroName)))
         {   
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1792,7 +1795,7 @@ function Invoke-LCNGVSMacroAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1842,7 +1845,7 @@ function Get-LCNGVSTableauGroupInfo
     }
     Process
     {      
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTableauGroupInfo))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTableauGroupInfo))
         {   
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1868,7 +1871,7 @@ function Get-LCNGVSTableauGroupInfo
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -1936,7 +1939,7 @@ function Open-LCNGVSTableau
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.OpenLCNGVSTableau))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.OpenLCNGVSTableau))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -1955,7 +1958,7 @@ function Open-LCNGVSTableau
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2009,13 +2012,13 @@ function Get-LCNGVSTableauControl
         [ValidateNotNullOrEmpty()]
         [String] $TableauUri,
 
-        [Parameter(Mandatory=$true, 
+        [Parameter(Mandatory=$false, 
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true, 
                    ValueFromRemainingArguments=$false, 
                    Position=2,
                    ParameterSetName='Default')]
-        [Parameter(Mandatory=$true, 
+        [Parameter(Mandatory=$false, 
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true, 
                    ValueFromRemainingArguments=$false, 
@@ -2037,7 +2040,7 @@ function Get-LCNGVSTableauControl
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTableauControl))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTableauControl))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2058,7 +2061,7 @@ function Get-LCNGVSTableauControl
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2097,7 +2100,7 @@ function Close-LCNGVSTableau
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.CloseLCNGVSTableau))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.CloseLCNGVSTableau))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2112,7 +2115,7 @@ function Close-LCNGVSTableau
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2167,7 +2170,7 @@ function Get-LCNGVSImage
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2273,7 +2276,7 @@ function Get-LCNGVSControlUpdateList
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.PollUpdates))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.PollUpdates))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2292,7 +2295,7 @@ function Get-LCNGVSControlUpdateList
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2340,7 +2343,7 @@ function Invoke-LCNGVSButton
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.InvokeLCNGVSButton))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.InvokeLCNGVSButton))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2359,7 +2362,7 @@ function Invoke-LCNGVSButton
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2404,7 +2407,7 @@ function Invoke-LCNGVSDimmer
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.InvokeLCNGVSDimmer))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.InvokeLCNGVSDimmer))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2423,7 +2426,7 @@ function Invoke-LCNGVSDimmer
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2469,7 +2472,7 @@ function Get-LCNGVSSupportedTrendLogSources
     }
     Process
     {        
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSSupportedTrendLogSources))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSSupportedTrendLogSources))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2488,7 +2491,7 @@ function Get-LCNGVSSupportedTrendLogSources
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2516,7 +2519,7 @@ function Get-LCNGVSTrendLogs
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2535,7 +2538,7 @@ function Get-LCNGVSTrendLogs
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2591,7 +2594,7 @@ function Export-LCNGVSTrendLog
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.ExportLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.ExportLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2616,7 +2619,7 @@ function Export-LCNGVSTrendLog
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2673,7 +2676,7 @@ function Open-LCNGVSTrendLog
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.OpenLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.OpenLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2692,7 +2695,7 @@ function Open-LCNGVSTrendLog
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2724,7 +2727,7 @@ function Close-LCNGVSTrendLog
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.CloseLCNGVSTrendLog))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.CloseLCNGVSTrendLog))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2743,7 +2746,7 @@ function Close-LCNGVSTrendLog
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2795,7 +2798,7 @@ function Get-LCNGVSTrendLogValues
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLogValues))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTrendLogValues))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2814,7 +2817,7 @@ function Get-LCNGVSTrendLogValues
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2856,7 +2859,7 @@ function Get-LCNGVSTrendLogValuesMultiple
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LCNGVS_Dictionary.GetLCNGVSTrendLogValuesMultiple))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTrendLogValuesMultiple))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2875,7 +2878,7 @@ function Get-LCNGVSTrendLogValuesMultiple
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -2892,7 +2895,7 @@ function Get-LCNGVSTrendLogValuesMultiple
 #region WebService: MonitoringServer
 
 # -----------------------------------------------
-# MonitoringEvent - Ereignisse (benoetigt Lizenzen)
+# MonitoringEvent - Ereignis (benoetigt Lizenzen)
 # -----------------------------------------------
 
 function New-LCNGVSMonitoringEvent
@@ -2959,7 +2962,7 @@ function Get-LCNGVSMonitoringEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3011,7 +3014,7 @@ function Set-LCNGVSMonitoringEvent # Alias: Add-LCNGVSMonitoringEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3063,7 +3066,7 @@ function Remove-LCNGVSMonitoringEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3073,7 +3076,7 @@ function Remove-LCNGVSMonitoringEvent
 }
 
 # -----------------------------------------------
-# MonitoringAction - Ausloeser
+# MonitoringAction - Ausloeser, Aktion
 # -----------------------------------------------
 
 function New-LCNGVSMonitoringAction
@@ -3140,7 +3143,7 @@ function Get-LCNGVSMonitoringAction
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3192,7 +3195,7 @@ function Set-LCNGVSMonitoringAction # Alias: Add-LCNGVSMonitoringAction
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3244,7 +3247,7 @@ function Remove-LCNGVSMonitoringAction
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3269,7 +3272,7 @@ function Remove-LCNGVSMonitoringAction
 #endregion
 
 # -----------------------------------------------
-# Webservice: Timer - Zeitsteuerung
+# Webservice: Timer - Zeitsteuerung, Zeitschaltuhr
 # -----------------------------------------------
 #region WebService: Timer
 
@@ -3328,7 +3331,7 @@ function New-LCNGVSTimerEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3396,7 +3399,7 @@ function Get-LCNGVSTimerEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3448,7 +3451,7 @@ function Set-LCNGVSTimerEvent # Alias: Add-LCNGVSTimerEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3500,7 +3503,70 @@ function Remove-LCNGVSTimerEvent
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }    
+}
+
+function Copy-LCNGVSTimerEvent
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTimerEvent',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([LCNGVS.Timer.TimerEvent[]])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [SupportsWildcards()]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $Id
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Timer", "Get timer events"))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Event = $Script:Timer1Svc.GetTimerEvents() | Where-Object -Property id -like -Value $Id
+                    $Event.ID = [GUID]::NewGuid()
+                    $Result = Set-LCNGVSTimerEvent -Event $Event                
+                    if ($Result -eq $true)
+                    {
+                        $Event
+                    }
+                    else
+                    {
+                        Write-Error -Message "Internal Error."
+                    }
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3516,8 +3582,21 @@ function Remove-LCNGVSTimerEvent
 # -----------------------------------------------
 #region WebService: AppSiri
 
-# Alias: Load-dic
-function Get-LCNGVSAppSiriItem
+<#
+    .SYNOPSIS
+        Ruft das SiriItemWebService-Dictionary ab.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Sprachbefehle aus dem Dictionary der Sprachsteuerung abrufen.
+    .PARAMETER itemTitle
+        Gibt den Schluesselbefehl an.
+    .EXAMPLE
+        Get-LCNGVSAppSiriItem
+    .EXAMPLE
+        Get-LCNGVSAppSiriItem -all
+    .EXAMPLE
+        Get-LCNGVSAppSiriItem -itemTitle Wohnz*
+#>
+function Get-LCNGVSAppSiriItem # Alias: Load-dic
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -3549,7 +3628,7 @@ function Get-LCNGVSAppSiriItem
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", "load SiriItemWebService dictionary"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", $Script:LocalizedData.GetLCNGVSAppSiriItem))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -3575,7 +3654,7 @@ function Get-LCNGVSAppSiriItem
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3584,8 +3663,15 @@ function Get-LCNGVSAppSiriItem
     }
 }
 
-# Alias: Load-dicAsync
-function Get-LCNGVSAppSiriItemAsync
+<#
+    .SYNOPSIS
+        Ruft das SiriItemWebService-Dictionary ab.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Sprachbefehle aus dem Dictionary der Sprachsteuerung abrufen.
+    .EXAMPLE
+        Get-LCNGVSAppSiriItemAsync
+#>
+function Get-LCNGVSAppSiriItemAsync # Alias: Load-dicAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -3603,7 +3689,7 @@ function Get-LCNGVSAppSiriItemAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", "load SiriItemWebService dictionary"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", $Script:LocalizedData.GetLCNGVSAppSiriItem))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -3618,7 +3704,7 @@ function Get-LCNGVSAppSiriItemAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3627,8 +3713,21 @@ function Get-LCNGVSAppSiriItemAsync
     }
 }
 
-# Alias: Execute-Command
-function Invoke-LCNGVSAppSiriCommand
+<#
+    .SYNOPSIS
+        Fuehrt den Sprachbefehl aus.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den angegebenen Sprachbefehle ausfuehren.
+    .PARAMETER itemTitle
+        Gibt den Schluesselbefehl an.
+    .PARAMETER listSpeechIntent
+        Gibt den sekundaeren Sprachbefehl an.
+    .EXAMPLE
+        Invoke-LCNGVSAppSiriCommand -itemTitle Wohnzimmer -listSpeechIntent Licht
+    .EXAMPLE
+        Invoke-LCNGVSAppSiriCommand -itemTitle Garage -listSpeechIntent Auf
+#>
+function Invoke-LCNGVSAppSiriCommand # Alias: Execute-Command
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -3638,8 +3737,25 @@ function Invoke-LCNGVSAppSiriCommand
     [Alias('Execute-Command')]
     [OutputType([bool])]
     param(
-        $itemTitle,
-        $listSpeechIntent
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $itemTitle,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $listSpeechIntent
     )
 
     Begin
@@ -3648,7 +3764,7 @@ function Invoke-LCNGVSAppSiriCommand
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", "invoke SiriItem"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", ($Script:LocalizedData.InvokeLCNGVSAppSiriCommand -f $itemTitle, $listSpeechIntent)))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -3663,7 +3779,7 @@ function Invoke-LCNGVSAppSiriCommand
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3692,7 +3808,7 @@ function Invoke-LCNGVSAppSiriCommandAsync
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", "invoke SiriItem"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.AppSiri", ($Script:LocalizedData.InvokeLCNGVSAppSiriCommand -f $itemTitle, $listSpeechIntent)))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -3707,7 +3823,7 @@ function Invoke-LCNGVSAppSiriCommandAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3752,7 +3868,7 @@ function Invoke-LCNGVSAppSiriDimmingCommand
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3797,7 +3913,7 @@ function Invoke-LCNGVSAppSiriDimmingCommandAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3842,7 +3958,7 @@ function Invoke-LCNGVSAppSiriAbsRegulatorCommand
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3887,7 +4003,7 @@ function Invoke-LCNGVSAppSiriAbsRegulatorCommandAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3933,7 +4049,7 @@ function Invoke-LCNGVSAppSiriRelRegulatorCommand
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -3979,7 +4095,7 @@ function Invoke-LCNGVSAppSiriRelRegulatorCommandAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -4025,7 +4141,7 @@ function Invoke-LCNGVSAppSiriChangeBrightnessCommand
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -4071,7 +4187,7 @@ function Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
@@ -4087,6 +4203,22 @@ function Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
 # -----------------------------------------------
 #region WebService: Logs
 
+<#
+    .SYNOPSIS
+        Ruft die Log-Eintraege aus dem Logbuch ab.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die Log-Eintraege aus dem angegebenen Logbuch abrufen.
+    .PARAMETER StartDate
+        Gibt den Startzeitpunkt an.
+    .PARAMETER EndDate
+        Gibt den Endzeitpunkt an.
+    .PARAMETER LogType
+        Gibt das Logbuch an.
+    .EXAMPLE
+        Get-LCNGVSLogEntry -StartDate ([DateTime]::Now.AddDays(-30)) -EndDate ([DateTime]::Now) -LogType LCN-GVS
+    .EXAMPLE
+        Get-LCNGVSLogEntry -StartDate ([DateTime]::Now.AddDays(-30)) -EndDate ([DateTime]::Now) -LogType Ereignismelder
+#>
 function Get-LCNGVSLogEntry
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -4097,9 +4229,32 @@ function Get-LCNGVSLogEntry
     [Alias('Get-LogLCNGVS', 'Get-LogTimer', 'Get-LogMacroServer', 'Get-LogAccessControl', 'Get-LogLcnServer')]
     [OutputType()]
     Param(
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
         [DateTime] $StartDate,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
         [datetime] $EndDate,
         
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=2,
+                   ParameterSetName='Default')]
         [ValidateSet("LCN-GVS", "Ereignismelder", "Makro", "Zeitschaltuhr", "Benutzerinteraktionen")]
         [String] $LogType
     )
@@ -4110,7 +4265,7 @@ function Get-LCNGVSLogEntry
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Logs", "get log"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Logs", ($Script:LocalizedData.GetLCNGVSLogEntry -f $LogType)))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -4137,7 +4292,7 @@ function Get-LCNGVSLogEntry
             }
             else
             {
-                Write-Error -Message $Script:LCNGVS_Dictionary.ErrorMessage1
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
             }
         }
     }
