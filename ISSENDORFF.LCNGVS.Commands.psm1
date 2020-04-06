@@ -785,7 +785,7 @@ function Get-LCNGVSRecentTableauList
                 }
                 finally
                 {
-                    $Strings
+                    $Strings | Where-Object -Property name -EQ -Value "RecentTableauUri"
                 }
             }
             else
@@ -836,7 +836,7 @@ function Get-LCNGVSLastTableauUri
             {
                 try
                 {            
-                    $Strings = $Script:LCNGVSSession.CustomData.Strings[0].Value
+                    $Strings = $Script:LCNGVSSession.CustomData.Strings
                 }
                 catch [System.Exception]
                 {
@@ -844,7 +844,7 @@ function Get-LCNGVSLastTableauUri
                 }
                 finally
                 {
-                    $Strings
+                    $Strings | Where-Object -Property name -EQ -Value "LastTableauUri"
                 }
             }
             else
@@ -896,7 +896,7 @@ function Get-LCNGVSQuickTableauUri
             {
                 try
                 {            
-                    $Strings = $Script:LCNGVSSession.CustomData.Strings[0].Value
+                    $Strings = $Script:LCNGVSSession.CustomData.Strings
                 }
                 catch [System.Exception]
                 {
