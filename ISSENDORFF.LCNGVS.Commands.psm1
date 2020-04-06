@@ -62,6 +62,16 @@ function Get-LCNGVSCommands
     Get-Command -Name *LCNGVS*
 }
 
+function Create-TableauUri
+{
+    param
+    (
+        [LCNGVS.Tableau.Tableau] $Tableau
+    )
+
+    return ($Tableau.TableauGroupName + "\" + $Tableau.TableauInfo.tableauId)
+}
+
 #endregion
 
 # -----------------------------------------------
@@ -856,6 +866,32 @@ function Get-LCNGVSLastTableauUri
     End
     {
     }
+}
+
+function Set-LCNGVSLastTableauUri
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSCustomData',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Name')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [LCNGVS.Tableau.Tableau] $Tableau
+    )
+    
+    ((Get-LCNGVSSession).CustomData.Strings | Where-Object -Property name -EQ -Value "LastTableauUri").Value = Create-TableauUri -Tableau $Tableau
+    Set-LCNGVSCustomData -CustomData (Get-LCNGVSSession).CustomData
 }
 
 <#
@@ -1719,6 +1755,7 @@ function Invoke-LCNGVSMacro
                    ParameterSetName='Default')]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
+        [Alias("name")]
         [String] $macroName
     )
 
@@ -1964,6 +2001,7 @@ function Open-LCNGVSTableau
     }
     End
     {
+        Set-LCNGVSLastTableauUri -Tableau $Tableau | Out-Null
     }
 }
 
@@ -2091,7 +2129,7 @@ function Close-LCNGVSTableau
                    ParameterSetName='Default')]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String] $tableauSessionId
+        [int] $tableauSessionId
     )
 
     Begin
@@ -3256,10 +3294,6 @@ function Remove-LCNGVSMonitoringAction
     }    
 }
 
-# -----------------------------------------------
-# Notification
-# -----------------------------------------------
-
 # ToDo:
 # -------------------
 # DeregisterDevice()
@@ -3517,10 +3551,10 @@ function Copy-LCNGVSTimerEvent
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTimerEvent',
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Copy-LCNGVSTimerEvent',
                   ConfirmImpact='Medium')]
     [Alias()]
-    [OutputType([LCNGVS.Timer.TimerEvent[]])]
+    [OutputType([LCNGVS.Timer.TimerEvent])]
     param
     (
         [Parameter(Mandatory=$true, 
@@ -3552,7 +3586,7 @@ function Copy-LCNGVSTimerEvent
                     $Result = Set-LCNGVSTimerEvent -Event $Event                
                     if ($Result -eq $true)
                     {
-                        $Event
+                        Get-LCNGVSTimerEvent -Id $Event.ID
                     }
                     else
                     {
