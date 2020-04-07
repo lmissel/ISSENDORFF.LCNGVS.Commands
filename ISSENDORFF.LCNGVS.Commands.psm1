@@ -29,10 +29,48 @@ $Script:LCNGVSSession = $null
 $Script:LocalizedData = Import-LocalizedData
 
 # -----------------------------------------------
-# Private Funktionen und vieles mehr
+# Private Funktionen, kleine Helferlein, Enums und Konstanten
 # -----------------------------------------------
 #region Helper
 
+# Benutzerrechte
+Enum UserRight
+{
+    AccessControlManagementRight
+    AccessControlVisualizationRight
+    BackUpManagementRight
+    ChangeOwnUserDataRight
+    CommonManagementRight
+    ConnectionManagementRight
+    ImageManagementRight
+    LogsViewRight
+    MacroManagementRight
+    MonitoringManagementRight
+    NavigationControlViewRight
+    PersonManagementRight
+    ProjectReleaseRight
+    TimerManagementRight
+    UserManagementRight
+    VisualizationEditorRight
+    VisualizationRight   
+}
+
+Enum Theme
+{
+    ISSENDORFF
+    Standard
+}
+
+<#
+    .SYNOPSIS
+        Ruft die WSDL-Datei des WebServices ab.
+    .DESCRIPTION
+        Ruft die WSDL-Datei des WebServices ab und gibt den Inhalt als String aus.       
+    .PARAMETER  Uri
+        Gibt die URL der WSDL-Datei an.
+    .EXAMPLE
+        Receive-WSDLFile -Uri "http://access.lcn.de/LCNGVSDemo/WebServices/Authentification1.asmx?wsdl"
+#>
 function Receive-WSDLFile
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -56,12 +94,29 @@ function Receive-WSDLFile
     return $output
 }
 
-# Liefert alle Cmdlets des Modules
+<#
+    .SYNOPSIS
+        Liefert alle Cmdlets des Modules
+    .DESCRIPTION
+        Liefert alle Cmdlets des Modules        
+    .EXAMPLE
+        Get-LCNGVSCommands
+#>
 function Get-LCNGVSCommands
 {
     Get-Command -Name *LCNGVS*
 }
 
+<#
+    .SYNOPSIS
+        Erstellt eine TableauUri.
+    .DESCRIPTION
+        Erstellt eine TableauUri anhand des uebergebenen Tableaus.        
+    .PARAMETER  Tableau
+        Gibt das Tableau an, aus dem eine TableauUri erstellt werden soll.
+    .EXAMPLE
+        Create-TableauUri -Tableau $Tableau
+#>
 function Create-TableauUri
 {
     param
@@ -1449,6 +1504,7 @@ function Get-LCNGVSServerPluginInfo # Alias: Get-PluginInfo
     .SYNOPSIS
         Ruft Informationen ueber die Verbindung des LCN-Busses ab.   
     .DESCRIPTION
+        Eine LCN-Bus-Verbindung ist die physikalische Verbindung zur Gebäude-Anlage. 
         Mit diesem Befehl koennen Sie Informationen ueber die Verbindung des LCN-Busses anzeigen lassen.
     .EXAMPLE
         Get-LCNGVSServerPluginInfo
@@ -1528,10 +1584,24 @@ function Get-LCNGVSServerLcnBusConnectionState # Alias: Get-LcnBusConnectionStat
 #endregion
 
 # -----------------------------------------------
-# Webservice: MacroServer
+# Webservice: MacroServer - Makros
 # -----------------------------------------------
 #region WebService: MacroServer
 
+<#
+    .SYNOPSIS
+        Ruft den Status des Macroservers ab.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den derzeitigen Status des Macroservers abrufen.
+    .EXAMPLE
+        Get-LCNGVSMacroServerEnabled
+    .LINK
+        Set-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacro
+        Get-LCNGVSMacroListAsync
+        Invoke-LCNGVSMacro
+        Invoke-LCNGVSMacroAsync
+#>
 function Get-LCNGVSMacroServerEnabled
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1575,6 +1645,20 @@ function Get-LCNGVSMacroServerEnabled
     }    
 }
 
+<#
+    .SYNOPSIS
+        Legt den Status des Macroservers fest.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den Status des Macroservers festlegen.
+    .EXAMPLE
+        Set-LCNGVSMacroServerEnabled -Enabled $true
+    .LINK
+        Get-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacro
+        Get-LCNGVSMacroListAsync
+        Invoke-LCNGVSMacro
+        Invoke-LCNGVSMacroAsync
+#>
 function Set-LCNGVSMacroServerEnabled
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1625,6 +1709,27 @@ function Set-LCNGVSMacroServerEnabled
     }
 }
 
+<#
+    .SYNOPSIS
+        Ruft das Macro ab.  
+    .DESCRIPTION
+        Makros sind Aktions-/Befehlsketten, die mit einem eindeutigen Namen versehen werden und dann beliebig oft ausgefuehrt werden koennen.
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Makros abrufen.
+    .EXAMPLE
+        Get-LCNGVSMacro
+    .EXAMPLE
+        Get-LCNGVSMacro -all
+    .EXAMPLE
+        Get-LCNGVSMacro -macroName "Garagen*"
+    .EXAMPLE
+        Get-LCNGVSMacro -macroName "Geragentor oeffnen"
+    .LINK
+        Get-LCNGVSMacroServerEnabled
+        Set-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacroListAsync
+        Invoke-LCNGVSMacro
+        Invoke-LCNGVSMacroAsync
+#>
 function Get-LCNGVSMacro
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1693,6 +1798,21 @@ function Get-LCNGVSMacro
     }
 }
 
+<#
+    .SYNOPSIS
+        Ruft eine Liste von verfuegbaren Makros ab.  
+    .DESCRIPTION
+        Makros sind Aktions-/Befehlsketten, die mit einem eindeutigen Namen versehen werden und dann beliebig oft ausgefuehrt werden koennen.
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Makros abrufen.
+    .EXAMPLE
+        Get-LCNGVSMacroListAsync
+    .LINK
+        Get-LCNGVSMacroServerEnabled
+        Set-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacro
+        Invoke-LCNGVSMacro
+        Invoke-LCNGVSMacroAsync
+#>
 function Get-LCNGVSMacroListAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1736,6 +1856,23 @@ function Get-LCNGVSMacroListAsync
     }
 }
 
+<#
+    .SYNOPSIS
+        Fuehrt das angegebene Makro aus.  
+    .DESCRIPTION
+        Makros sind Aktions-/Befehlsketten, die mit einem eindeutigen Namen versehen werden und dann beliebig oft ausgefuehrt werden koennen.
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Makros ausfuehren.  
+    .PARAMETER macroName
+        Geben Sie den eindeutigen Namen des Makros an.
+    .EXAMPLE
+        Invoke-LCNGVSMacro -macroName "Garagentor oeffnen"
+    .LINK
+        Invoke-LCNGVSMacroAsync
+        Get-LCNGVSMacroServerEnabled
+        Set-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacro
+        Get-LCNGVSMacroListAsync
+#>
 function Invoke-LCNGVSMacro
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1789,6 +1926,23 @@ function Invoke-LCNGVSMacro
     }
 }
 
+<#
+    .SYNOPSIS
+        Fuehrt das angegebene Makro aus.  
+    .DESCRIPTION
+        Makros sind Aktions-/Befehlsketten, die mit einem eindeutigen Namen versehen werden und dann beliebig oft ausgefuehrt werden koennen.
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Makros ausfuehren.  
+    .PARAMETER macroName
+        Legt das auszufuehrende Makro fest.
+    .EXAMPLE
+        Invoke-LCNGVSMacroAsync -macroName "Garagentor oeffnen"
+    .LINK
+        Invoke-LCNGVSMacro
+        Get-LCNGVSMacroServerEnabled
+        Set-LCNGVSMacroServerEnabled
+        Get-LCNGVSMacro
+        Get-LCNGVSMacroListAsync
+#>
 function Invoke-LCNGVSMacroAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -1844,12 +1998,28 @@ function Invoke-LCNGVSMacroAsync
 #endregion
 
 # -----------------------------------------------
-# Webservice: Tableau
+# Webservice: Tableau - Tableaus, Steuerelemente und TrendLogs
 # -----------------------------------------------
 #region WebService: Tableau
 
-# Alias: Get-Tableaus
-function Get-LCNGVSTableauGroupInfo
+<#
+    .SYNOPSIS
+        Ruft die Tableaugruppen ab.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Tableaugruppen abrufen.
+    .EXAMPLE
+        Get-LCNGVSTableauGroupInfo
+    .LINK
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Get-LCNGVSTableauGroupInfo # Alias: Get-Tableaus
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -1917,8 +2087,24 @@ function Get-LCNGVSTableauGroupInfo
     }
 }
 
-# Alias: Open-Tableau
-function Open-LCNGVSTableau
+<#
+    .SYNOPSIS
+        Oeffnet eine neue TableauSession.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie eine Sitzung fuer ein im LCN-GVS eingerichteten Tableau oeffnen.
+    .EXAMPLE
+        Open-LCNGVSTableau
+    .LINK
+        Get-LCNGVSTableauGroupInfo        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Open-LCNGVSTableau # Alias: Open-Tableau
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -1956,11 +2142,25 @@ function Open-LCNGVSTableau
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true, 
                    ValueFromRemainingArguments=$false, 
-                   Position=1,
+                   Position=0,
                    ParameterSetName='Uri')]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String] $TableauUri
+        [String] $TableauUri,
+
+        [Parameter(Mandatory=$false, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Uri')]
+        [Parameter(Mandatory=$false, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   ValueFromRemainingArguments=$false, 
+                   Position=2,
+                   ParameterSetName='Default')]
+        [Switch] $SetAsLastTableau
     )
 
     Begin
@@ -2001,115 +2201,28 @@ function Open-LCNGVSTableau
     }
     End
     {
-        Set-LCNGVSLastTableauUri -Tableau $Tableau | Out-Null
+        if ($SetAsLastTableau) {Set-LCNGVSLastTableauUri -Tableau $Tableau | Out-Null}
     }
 }
 
-# Alias: Get-TableauControl
-function Get-LCNGVSTableauControl
-{
-    [CmdletBinding(DefaultParameterSetName='Default', 
-                  SupportsShouldProcess=$true, 
-                  PositionalBinding=$false,
-                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTableauControl',
-                  ConfirmImpact='Medium')]
-    [Alias('Get-TableauControl')]
-    [OutputType([LCNGVS.Tableau.Control])]
-    Param
-    (
-        # Hilfebeschreibung zu Param1
-        [Parameter(Mandatory=$true, 
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
-                   Position=0,
-                   ParameterSetName='Default')]
-        [ValidateNotNull()]
-        [ValidateNotNullOrEmpty()]
-        [String] $tableauGroupName,
-
-        # Hilfebeschreibung zu Param2
-        [Parameter(Mandatory=$true, 
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
-                   Position=1,
-                   ParameterSetName='Default')]
-        [ValidateNotNull()]
-        [ValidateNotNullOrEmpty()]
-        [String] $tableauId,
-
-        # Hilfebeschreibung zu Param1
-        [Parameter(Mandatory=$true, 
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
-                   Position=0,
-                   ParameterSetName='Uri')]
-        [ValidateNotNull()]
-        [ValidateNotNullOrEmpty()]
-        [String] $TableauUri,
-
-        [Parameter(Mandatory=$false, 
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
-                   Position=2,
-                   ParameterSetName='Default')]
-        [Parameter(Mandatory=$false, 
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
-                   Position=1,
-                   ParameterSetName='Uri')]
-        [LCNGVS.Tableau.ControlType] $ControlType = [LCNGVS.Tableau.ControlType]::Unknown
-    )
-
-    Begin
-    {
-        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
-
-        if ($pscmdlet.ParameterSetName -eq 'Uri')
-        { 
-            [String[]] $string = $TableauUri.Split('\')
-            $tableauGroupName = $string[0]
-            $tableauId = $string[1]
-        }
-    }
-    Process
-    {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTableauControl))
-        {
-            if ($Script:LCNGVSSession.IsSuccess)
-            {
-                try
-                {            
-                    $Tableau = $Script:Tableau1Svc.OpenTableau($tableauGroupName, $tableauId)
-                    $Controls = $Tableau.Controls | Where-Object -Property type -EQ -Value $ControlType
-                    $Script:Tableau1Svc.CloseTableau($Tableau.tableauSessionId) | Out-Null
-                }
-                catch [System.Exception]
-                {
-                    Write-Error $_
-                }
-                finally
-                {
-                    $Controls
-                }
-            }
-            else
-            {
-                Write-Error -Message $Script:LocalizedData.ErrorMessage1
-            }
-        }
-    }
-    End
-    {
-    }
-}
-
-# Alias: Close-Tableau
-function Close-LCNGVSTableau
+<#
+    .SYNOPSIS
+        Schliesst die angegebene TableauSession.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie eine geoeffnete Sitzung schliessen.
+    .EXAMPLE
+        Close-LCNGVSTableau
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Close-LCNGVSTableau # Alias: Close-Tableau
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
@@ -2162,8 +2275,24 @@ function Close-LCNGVSTableau
     }
 }
 
-# Alias: Get-Image
-function Get-LCNGVSImage
+<#
+    .SYNOPSIS
+        Ruft die angegebenen Images ab.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die im LCN-GVS hinterlegten Bilder abrufen.
+    .EXAMPLE
+        Get-LCNGVSImage
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Get-LCNGVSImage # Alias: Get-Image
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
                   SupportsShouldProcess=$true, 
@@ -2189,7 +2318,7 @@ function Get-LCNGVSImage
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", "get a list form images"))
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetImages))
         {
             if ($Script:LCNGVSSession.IsSuccess)
             {
@@ -2217,8 +2346,24 @@ function Get-LCNGVSImage
     }
 }
 
-# Alias: Save-Image
-function Export-LCNGVSImage
+<#
+    .SYNOPSIS
+        Exportiert das angebene Bild.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein Bild auf einem Datentraeger speichern.
+    .EXAMPLE
+        Export-LCNGVSImage
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Export-LCNGVSImage # Alias: Save-Image
 {
 
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -2258,27 +2403,211 @@ function Export-LCNGVSImage
 
     Begin
     {
-        if ($PSCmdlet.ParameterSetName -eq 'Image')
-        {
-            $path = $Image.name.Split('/')[($Image.name.Split('/').Count -1)]
-            $path = '.\' + $path
-
-            $DataBase64 = $Image.DataBase64
-        }
     }
     Process
     {
-    
-        $bytes = [Convert]::FromBase64String($DataBase64)
-        [IO.File]::WriteAllBytes($path, $bytes)
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.ExportImage))
+        {
+            if ($PSCmdlet.ParameterSetName -eq 'Image')
+            {
+                $path = $Image.name.Split('/')[($Image.name.Split('/').Count -1)]
+                $path = '.\' + $path
+
+                $DataBase64 = $Image.DataBase64
+            }
+
+            $bytes = [Convert]::FromBase64String($DataBase64)
+            [IO.File]::WriteAllBytes($path, $bytes)
+        }
     }
     End
     {
     }
 }
 
-# Alias: Poll-Updates
-function Get-LCNGVSControlUpdateList
+<#
+    .SYNOPSIS
+        Ruft das angegebene Steuerelement ab.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Steuerelemente eines Tableaus abrufen.
+    .EXAMPLE
+        Get-LCNGVSControl -TableauUri "Haus\Wohnzimmer" -Id 33
+    .EXAMPLE
+        Get-LCNGVSControl -TableauGroupName "Haus" -TableauId "Wohnzimmer" -Id 33
+    .EXAMPLE
+        Get-LCNGVSControl -TableauUri "Haus\Wohnzimmer" -ControlType Button 
+    .EXAMPLE
+        Get-LCNGVSControl -TableauGroupName "Haus" -TableauId "Wohnzimmer" -ControlType Button
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Get-LCNGVSControl # Alias: Get-Control, Get-TableauControl, Get-LCNGVSTableauControl
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Get-LCNGVSTableauControl',
+                  ConfirmImpact='Medium')]
+    [Alias('Get-Control','Get-TableauControl','Get-LCNGVSTableauControl')]
+    [OutputType([LCNGVS.Tableau.Control])]
+    Param
+    (
+        # Hilfebeschreibung zu Param1
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $tableauGroupName,
+
+        # Hilfebeschreibung zu Param2
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Default')]
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Id')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $tableauId,
+
+        # Hilfebeschreibung zu Param1
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Uri')]
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Id2')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $TableauUri,
+
+        [Parameter(Mandatory=$false, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=2,
+                   ParameterSetName='Default')]
+        [Parameter(Mandatory=$false, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Uri')]
+        [LCNGVS.Tableau.ControlType] $ControlType = [LCNGVS.Tableau.ControlType]::Unknown,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=2,
+                   ParameterSetName='Id')]
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Id2')]
+        [String] $Id
+
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+
+        if ($pscmdlet.ParameterSetName -eq 'Uri' -or $pscmdlet.ParameterSetName -eq 'Id2')
+        { 
+            [String[]] $string = $TableauUri.Split('\')
+            $tableauGroupName = $string[0]
+            $tableauId = $string[1]
+        }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Tableau", $Script:LocalizedData.GetLCNGVSTableauControl))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Tableau = $Script:Tableau1Svc.OpenTableau($tableauGroupName, $tableauId)
+                    if ($pscmdlet.ParameterSetName -eq "Default" -or $pscmdlet.ParameterSetName -eq "Uri")
+                    {
+                        $Controls = $Tableau.Controls | Where-Object -Property type -EQ -Value $ControlType
+                    }
+                    if ($pscmdlet.ParameterSetName -eq "Id" -or $pscmdlet.ParameterSetName -eq "Id2")
+                    {
+                        $Controls = $Tableau.Controls | Where-Object -Property id -EQ -Value $Id
+                    }
+                    $Script:Tableau1Svc.CloseTableau($Tableau.tableauSessionId) | Out-Null
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+                finally
+                {
+                    $Controls
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+<#
+    .SYNOPSIS
+        Fragt einen neuen Status der angegebenen Steuerelemente.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie einen neuen Status der angegebenen Steuerelemente erfragen.
+    .EXAMPLE
+        Get-LCNGVSControlUpdateList
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Get-LCNGVSControlUpdateList # Alias: Poll-Updates
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
                   SupportsShouldProcess=$true, 
@@ -2342,8 +2671,25 @@ function Get-LCNGVSControlUpdateList
     }
 }
 
-# Alias: Submit-Button
-function Invoke-LCNGVSButton
+<#
+    .SYNOPSIS
+        Betaetigt die angegebene Schaltflaeche.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie eine Schaltflaeche auf einem im LCN-GVS eingerichteten Tableau betaetigen.
+    .EXAMPLE
+        Invoke-LCNGVSButton
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+        Invoke-LCNGVSDimmer
+#>
+function Invoke-LCNGVSButton # Alias: Submit-Button
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
                   SupportsShouldProcess=$true, 
@@ -2409,8 +2755,24 @@ function Invoke-LCNGVSButton
     }
 }
 
-# Alias: Submit-Dimmer
-function Invoke-LCNGVSDimmer
+<#
+    .SYNOPSIS
+        Stellt den Dimmer auf dem Tableau ein.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie einen Dimmer auf einem im LCN-GVS eingerichteten Tableau einstellen.
+    .EXAMPLE
+        Invoke-LCNGVSDimmer
+    .LINK
+        Get-LCNGVSTableauGroupInfo
+        Open-LCNGVSTableau        
+        Close-LCNGVSTableau
+        Get-LCNGVSImage
+        Export-LCNGVSImage
+        Get-LCNGVSControl
+        Get-LCNGVSControlUpdateList
+        Invoke-LCNGVSButton
+#>
+function Invoke-LCNGVSDimmer # Alias: Submit-Dimmer
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
                   SupportsShouldProcess=$true, 
@@ -2936,11 +3298,49 @@ function Get-LCNGVSTrendLogValuesMultiple
 # MonitoringEvent - Ereignis (benoetigt Lizenzen)
 # -----------------------------------------------
 
+<#
+    .SYNOPSIS
+        Erzeugt ein neuen Ereignismelder.
+    .DESCRIPTION
+       Das LCN-GVS verfuegt ueber einen Ereignismelder, der Zustaende im LCN-Bus ueberwacht und beim Eintreten von vordefinierten Ereignissen entsprechende Aktionen ausfuehrt.
+       Mit diesem Befehl koennen Sie ein neuen Ereignismelder erzeugen.
+       
+       Fuer den Ereignismelder sind Lizenzen erforderlich (entsprechend der Anzahl eingerichteter Ereignisse).
+    .EXAMPLE
+        New-LCNGVSMonitoringEvent
+    .LINK
+        New-LCNGVSMonitoringEvent
+        Get-LCNGVSMonitoringEvent
+        Set-LCNGVSMonitoringEvent
+        Add-LCNGVSMonitoringEvent
+        Remove-LCNGVSMonitoringEvent
+#>
 function New-LCNGVSMonitoringEvent
 {
     throw "This function is not implemented."
 }
 
+<#
+    .SYNOPSIS
+        Ruft die im LCN-GVS eingerichteten Ereignismelder ab.
+    .DESCRIPTION
+       Das LCN-GVS verfuegt ueber einen Ereignismelder, der Zustaende im LCN-Bus ueberwacht und beim Eintreten von vordefinierten Ereignissen entsprechende Aktionen ausfuehrt.
+       Mit diesem Befehl koennen Sie die im LCN-GVS eingerichteten Ereignismelder abrufen.
+       
+       Fuer den Ereignismelder sind Lizenzen erforderlich (entsprechend der Anzahl eingerichteter Ereignisse).
+    .EXAMPLE
+        Get-LCNGVSMonitoringEvent
+    .EXAMPLE
+        Get-LCNGVSMonitoringEvent -all
+    .EXAMPLE
+        Get-LCNGVSMonitoringEvent -id 8eaf4ba7-aeb9-4f3c-8aa6-c355ea951838
+    .LINK
+        New-LCNGVSMonitoringEvent
+        Get-LCNGVSMonitoringEvent
+        Set-LCNGVSMonitoringEvent
+        Add-LCNGVSMonitoringEvent
+        Remove-LCNGVSMonitoringEvent
+#>
 function Get-LCNGVSMonitoringEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3009,6 +3409,25 @@ function Get-LCNGVSMonitoringEvent
     }    
 }
 
+<#
+    .SYNOPSIS
+       Fuegt hinzu oder aendert den Ereignismelder im LCN-GVS.
+    .DESCRIPTION
+       Das LCN-GVS verfuegt ueber einen Ereignismelder, der Zustaende im LCN-Bus ueberwacht und beim Eintreten von vordefinierten Ereignissen entsprechende Aktionen ausfuehrt.
+       Mit diesem Befehl koennen Sie den uebergebenen im LCN-GVS eingerichteten Ereignismelder aendern oder fuegen einen neuen hinzu.
+       
+       Fuer den Ereignismelder sind Lizenzen erforderlich (entsprechend der Anzahl eingerichteter Ereignisse).
+    .EXAMPLE
+        Set-LCNGVSMonitoringEvent -Event $Event
+    .EXAMPLE
+        Add-LCNGVSMonitoringEvent -Event $Event
+    .LINK
+        New-LCNGVSMonitoringEvent
+        Get-LCNGVSMonitoringEvent
+        Set-LCNGVSMonitoringEvent
+        Add-LCNGVSMonitoringEvent
+        Remove-LCNGVSMonitoringEvent
+#>
 function Set-LCNGVSMonitoringEvent # Alias: Add-LCNGVSMonitoringEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3061,6 +3480,23 @@ function Set-LCNGVSMonitoringEvent # Alias: Add-LCNGVSMonitoringEvent
     }
 }
 
+<#
+    .SYNOPSIS
+       Loescht den Ereignismelder im LCN-GVS.
+    .DESCRIPTION
+       Das LCN-GVS verfuegt ueber einen Ereignismelder, der Zustaende im LCN-Bus ueberwacht und beim Eintreten von vordefinierten Ereignissen entsprechende Aktionen ausfuehrt.
+       Mit diesem Befehl koennen Sie den uebergebenen im LCN-GVS eingerichteten Ereignismelder loeschen.
+       
+       Fuer den Ereignismelder sind Lizenzen erforderlich (entsprechend der Anzahl eingerichteter Ereignisse).
+    .EXAMPLE
+        Remove-LCNGVSMonitoringEvent -id 8eaf4ba7-aeb9-4f3c-8aa6-c355ea951838
+    .LINK
+        New-LCNGVSMonitoringEvent
+        Get-LCNGVSMonitoringEvent
+        Set-LCNGVSMonitoringEvent
+        Add-LCNGVSMonitoringEvent
+        Remove-LCNGVSMonitoringEvent
+#>
 function Remove-LCNGVSMonitoringEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3310,6 +3746,21 @@ function Remove-LCNGVSMonitoringAction
 # -----------------------------------------------
 #region WebService: Timer
 
+<#
+    .SYNOPSIS
+        Erstellt ein neues Zeitschaltuhr-Ereignis.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein neues Zeitschaltuhr-Ereignis erstellen. 
+    .EXAMPLE
+        New-LCNGVSTimerEvent -Description "Es wird Zeit!"
+    .LINK
+        New-LCNGVSTimerEvent
+        Get-LCNGVSTimerEvent
+        Set-LCNGVSTimerEvent
+        Add-LCNGVSTimerEvent
+        Remove-LCNGVSTimerEvent
+        Copy-LCNGVSTimerEvent
+#>
 function New-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3374,6 +3825,25 @@ function New-LCNGVSTimerEvent
     }  
 }
 
+<#
+    .SYNOPSIS
+        Rufen Sie ein oder mehrere Zeitschaltuhr-Ereignisse ab.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein oder mehrere Zeitschaltuhr-Ereignisse abrufen.
+    .EXAMPLE
+        Get-LCNGVSTimerEvent
+    .EXAMPLE
+        Get-LCNGVSTimerEvent -all
+    .EXAMPLE
+        Get-LCNGVSTimerEvent -Id 9249fe1a-e738-4f73-ab16-e2e00809b482
+    .LINK
+        New-LCNGVSTimerEvent
+        Get-LCNGVSTimerEvent
+        Set-LCNGVSTimerEvent
+        Add-LCNGVSTimerEvent
+        Remove-LCNGVSTimerEvent
+        Copy-LCNGVSTimerEvent
+#>
 function Get-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3442,6 +3912,23 @@ function Get-LCNGVSTimerEvent
     }    
 }
 
+<#
+    .SYNOPSIS
+        Fuegen Sie ein neues Zeitschaltuhr-Ereignis hinzu oder aendern Sie ein vorhandenes.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein neues Zeitschaltuhr-Ereignis hinzufuegen oder ein vorhandenes aendern.
+    .EXAMPLE
+        Set-LCNGVSTimerEvent -Event $TimerEvent
+    .EXAMPLE
+        Add-LCNGVSTimerEvent -Event (New-LCNGVSTimerEvent -Description "Es wird Zeit!")
+    .LINK
+        New-LCNGVSTimerEvent
+        Get-LCNGVSTimerEvent
+        Set-LCNGVSTimerEvent
+        Add-LCNGVSTimerEvent
+        Remove-LCNGVSTimerEvent
+        Copy-LCNGVSTimerEvent
+#>
 function Set-LCNGVSTimerEvent # Alias: Add-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3494,6 +3981,21 @@ function Set-LCNGVSTimerEvent # Alias: Add-LCNGVSTimerEvent
     }    
 }
 
+<#
+    .SYNOPSIS
+        Loeschen Sie ein vorhandenes Zeitschaltuhr-Ereignis.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein vorhandenes Zeitschaltuhr-Ereignis loeschen.
+    .EXAMPLE
+        Remove-LCNGVSTimerEvent -Id 301c2bc9-5cee-4f73-9d88-9779719d7040
+    .LINK
+        New-LCNGVSTimerEvent
+        Get-LCNGVSTimerEvent
+        Set-LCNGVSTimerEvent
+        Add-LCNGVSTimerEvent
+        Remove-LCNGVSTimerEvent
+        Copy-LCNGVSTimerEvent
+#>
 function Remove-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3546,6 +4048,24 @@ function Remove-LCNGVSTimerEvent
     }    
 }
 
+<#
+    .SYNOPSIS
+        Kopieren Sie ein vorhandenes Zeitschaltuhr-Ereignis.
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ein vorhandenes Zeitschaltuhr-Ereignis kopieren.
+        
+        Hinweis: Es wird direkt als neues Ereignis registriert.
+
+    .EXAMPLE
+        Copy-LCNGVSTimerEvent -Id 301c2bc9-5cee-4f73-9d88-9779719d7040
+    .LINK
+        New-LCNGVSTimerEvent
+        Get-LCNGVSTimerEvent
+        Set-LCNGVSTimerEvent
+        Add-LCNGVSTimerEvent
+        Remove-LCNGVSTimerEvent
+        Copy-LCNGVSTimerEvent
+#>
 function Copy-LCNGVSTimerEvent
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
@@ -3629,6 +4149,20 @@ function Copy-LCNGVSTimerEvent
         Get-LCNGVSAppSiriItem -all
     .EXAMPLE
         Get-LCNGVSAppSiriItem -itemTitle Wohnz*
+    .EXAMPLE
+        Get-LCNGVSAppSiriItem -itemTitle Wohnzimmer
+    .LINK
+        Get-LCNGVSAppSiriItemAsync
+        Invoke-LCNGVSAppSiriCommand
+        Invoke-LCNGVSAppSiriCommandAsync
+        Invoke-LCNGVSAppSiriDimmingCommand
+        Invoke-LCNGVSAppSiriDimmingCommandAsync
+        Invoke-LCNGVSAppSiriAbsRegulatorCommand
+        Invoke-LCNGVSAppSiriAbsRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriRelRegulatorCommand
+        Invoke-LCNGVSAppSiriRelRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriChangeBrightnessCommand
+        Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
 #>
 function Get-LCNGVSAppSiriItem # Alias: Load-dic
 {
@@ -3704,6 +4238,18 @@ function Get-LCNGVSAppSiriItem # Alias: Load-dic
         Mit diesem Befehl koennen Sie die Sprachbefehle aus dem Dictionary der Sprachsteuerung abrufen.
     .EXAMPLE
         Get-LCNGVSAppSiriItemAsync
+    .LINK
+        Get-LCNGVSAppSiriItem
+        Invoke-LCNGVSAppSiriCommand
+        Invoke-LCNGVSAppSiriCommandAsync
+        Invoke-LCNGVSAppSiriDimmingCommand
+        Invoke-LCNGVSAppSiriDimmingCommandAsync
+        Invoke-LCNGVSAppSiriAbsRegulatorCommand
+        Invoke-LCNGVSAppSiriAbsRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriRelRegulatorCommand
+        Invoke-LCNGVSAppSiriRelRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriChangeBrightnessCommand
+        Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
 #>
 function Get-LCNGVSAppSiriItemAsync # Alias: Load-dicAsync
 {
@@ -3760,6 +4306,19 @@ function Get-LCNGVSAppSiriItemAsync # Alias: Load-dicAsync
         Invoke-LCNGVSAppSiriCommand -itemTitle Wohnzimmer -listSpeechIntent Licht
     .EXAMPLE
         Invoke-LCNGVSAppSiriCommand -itemTitle Garage -listSpeechIntent Auf
+    .LINK
+        Get-LCNGVSAppSiriItem
+        Get-LCNGVSAppSiriItemAsync
+        Invoke-LCNGVSAppSiriCommand
+        Invoke-LCNGVSAppSiriCommandAsync
+        Invoke-LCNGVSAppSiriDimmingCommand
+        Invoke-LCNGVSAppSiriDimmingCommandAsync
+        Invoke-LCNGVSAppSiriAbsRegulatorCommand
+        Invoke-LCNGVSAppSiriAbsRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriRelRegulatorCommand
+        Invoke-LCNGVSAppSiriRelRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriChangeBrightnessCommand
+        Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
 #>
 function Invoke-LCNGVSAppSiriCommand # Alias: Execute-Command
 {
@@ -3822,14 +4381,40 @@ function Invoke-LCNGVSAppSiriCommand # Alias: Execute-Command
     }    
 }
 
-function Invoke-LCNGVSAppSiriCommandAsync
+<#
+    .SYNOPSIS
+        Fuehrt den Sprachbefehl aus.  
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie den angegebenen Sprachbefehle ausfuehren.
+    .PARAMETER itemTitle
+        Gibt den Schluesselbefehl an.
+    .PARAMETER listSpeechIntent
+        Gibt den sekundaeren Sprachbefehl an.
+    .EXAMPLE
+        Invoke-LCNGVSAppSiriCommandAsync -itemTitle Wohnzimmer -listSpeechIntent Licht
+    .EXAMPLE
+        Invoke-LCNGVSAppSiriCommandAsync -itemTitle Garage -listSpeechIntent Auf
+    .LINK
+        Get-LCNGVSAppSiriItem
+        Get-LCNGVSAppSiriItemAsync
+        Invoke-LCNGVSAppSiriCommand
+        Invoke-LCNGVSAppSiriDimmingCommand
+        Invoke-LCNGVSAppSiriDimmingCommandAsync
+        Invoke-LCNGVSAppSiriAbsRegulatorCommand
+        Invoke-LCNGVSAppSiriAbsRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriRelRegulatorCommand
+        Invoke-LCNGVSAppSiriRelRegulatorCommandAsync
+        Invoke-LCNGVSAppSiriChangeBrightnessCommand
+        Invoke-LCNGVSAppSiriChangeBrightnessCommandAsync
+#>
+function Invoke-LCNGVSAppSiriCommandAsync # Alias: Execute-CommandAsync
 {
     [CmdletBinding(DefaultParameterSetName='Default', 
                   SupportsShouldProcess=$true, 
                   PositionalBinding=$false,
                   HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Invoke-LCNGVSAppSiriCommandAsync',
                   ConfirmImpact='Medium')]
-    [Alias()]
+    [Alias('Execute-CommandAsync')]
     [OutputType([bool])]
     param(
         $itemTitle,
