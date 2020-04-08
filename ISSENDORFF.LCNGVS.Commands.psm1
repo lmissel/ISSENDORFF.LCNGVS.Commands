@@ -33,32 +33,18 @@ $Script:LocalizedData = Import-LocalizedData
 # -----------------------------------------------
 #region Helper
 
-# Benutzerrechte
-Enum UserRight
+# Enums laden...
+$Enums = @( Get-ChildItem -Path $PSScriptRoot\Enumerations\*.ps1 -ErrorAction SilentlyContinue )
+Foreach ($import in @($Enums))
 {
-    AccessControlManagementRight
-    AccessControlVisualizationRight
-    BackUpManagementRight
-    ChangeOwnUserDataRight
-    CommonManagementRight
-    ConnectionManagementRight
-    ImageManagementRight
-    LogsViewRight
-    MacroManagementRight
-    MonitoringManagementRight
-    NavigationControlViewRight
-    PersonManagementRight
-    ProjectReleaseRight
-    TimerManagementRight
-    UserManagementRight
-    VisualizationEditorRight
-    VisualizationRight   
-}
-
-Enum Theme
-{
-    ISSENDORFF
-    Standard
+    try 
+    {
+        . $import.fullname
+    } 
+    catch
+    {
+        Write-Error -Message "Fehler beim Laden der Datei $($import.fullname): $_"
+    }
 }
 
 <#
@@ -128,7 +114,7 @@ function Create-TableauUri
 }
 
 #endregion
-
+ 
 # -----------------------------------------------
 # Webservice: Authentification
 # -----------------------------------------------
@@ -788,6 +774,71 @@ function Get-LCNGVSUserRights # Alias: 'Get-UserRights'
                 finally
                 {
                     $UserRights
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
+
+<#
+    .SYNOPSIS
+        Prueft ob der Benutzer ueber das angegebene Recht verfuegt.    
+    .DESCRIPTION
+        Mit diesem Befehl koennen Sie ueberpruefen, ob der Benutzer ueber das angegebene Recht verfuegt.
+    .EXAMPLE
+        Test-LCNGVSUserRight -UserRight MacroManagementRight
+    .LINK
+        Connect-LCNGVS
+        Disconnect-LCNGVSAsync
+        Get-LCNGVSSession
+        Get-LCNGVSUserRights
+#>
+function Test-LCNGVSUserRight # Alias: 'Check-UserRight'
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Test-LCNGVSUserRight',
+                  ConfirmImpact='Medium')]
+    [Alias('Check-UserRight')]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [LCNGVS.PowerShellModul.UserRight] $UserRight
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.Authentification", $Script:LocalizedData.CheckLCNGVSUserRight))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:LCNGVSSession.UserRights.Contains($UserRight.ToString())
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
                 }
             }
             else
@@ -2947,6 +2998,7 @@ function Get-LCNGVSTrendLogs
     }
 }
 
+# Der Export erfolgt im CSV-Format nach RFC 4180. Die Kodierung ist UTF-8, das Trennzeichen ist "Komma". Der MIME-Typ des Datei-Downloads ist "text/csv".
 function Export-LCNGVSTrendLog
 {
     [CmdletBinding(DefaultParameterSetName='Standard', 
@@ -3730,14 +3782,71 @@ function Remove-LCNGVSMonitoringAction
     }    
 }
 
-# ToDo:
-# -------------------
-# DeregisterDevice()
-# DeregisterFromMonitoringEventPushNotifications()
-# GetPendingNotifications()
-# GetRegisteredDevice()
-# GetRegisteredServer()
-# ...
+# ------------------------------------------------
+# PushNotification
+# -----------------------------------------------
+
+function Unregister-Device
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Unregister-Device',
+                  ConfirmImpact='Medium')]
+    [Alias()]
+    [OutputType([Bool])]
+    param
+    (
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceId,
+
+        [Parameter(Mandatory=$true, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=1,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceType
+    )
+
+    Begin
+    {
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+    Process
+    {
+        if ($pscmdlet.ShouldProcess("LCNGVS.MonitoringServer", $LocalizedData.UnregisterDevice))
+        {
+            if ($Script:LCNGVSSession.IsSuccess)
+            {
+                try
+                {            
+                    $Script:MonitoringServer1Svc.DeregisterDevice($DeviceType, $DeviceId)
+                }
+                catch [System.Exception]
+                {
+                    Write-Error $_
+                }
+            }
+            else
+            {
+                Write-Error -Message $Script:LocalizedData.ErrorMessage1
+            }
+        }
+    }
+    End
+    {
+    }
+}
 
 #endregion
 
