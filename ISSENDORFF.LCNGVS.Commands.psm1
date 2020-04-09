@@ -101,9 +101,9 @@ function Get-LCNGVSCommands
     .PARAMETER  Tableau
         Gibt das Tableau an, aus dem eine TableauUri erstellt werden soll.
     .EXAMPLE
-        Create-TableauUri -Tableau $Tableau
+        New-LCNGVSTableauUri -Tableau $Tableau
 #>
-function Create-TableauUri
+function New-LCNGVSTableauUri
 {
     param
     (
