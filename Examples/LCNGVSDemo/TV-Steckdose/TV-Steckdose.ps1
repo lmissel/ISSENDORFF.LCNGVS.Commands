@@ -1,5 +1,5 @@
 ﻿
-Import-Module ISSENDORFF.LCNGVS.WebServices.Commands
+Import-Module ISSENDORFF.LCNGVS.Commands
 
 Connect-LCNGVS -Uri "http://access.lcn.de/LCNGVSDemo" -Credential (Microsoft.PowerShell.Security\Get-Credential -UserName guest -Message "Bitte geben Sie das Kennwort ein. Kennwort: lcn")
 
