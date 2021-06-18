@@ -1555,7 +1555,7 @@ function Get-LCNGVSServerPluginInfo # Alias: Get-PluginInfo
     .SYNOPSIS
         Ruft Informationen ueber die Verbindung des LCN-Busses ab.   
     .DESCRIPTION
-        Eine LCN-Bus-Verbindung ist die physikalische Verbindung zur Gebäude-Anlage. 
+        Eine LCN-Bus-Verbindung ist die physikalische Verbindung zur Gebï¿½ude-Anlage. 
         Mit diesem Befehl koennen Sie Informationen ueber die Verbindung des LCN-Busses anzeigen lassen.
     .EXAMPLE
         Get-LCNGVSServerPluginInfo
@@ -4210,12 +4210,12 @@ function Copy-LCNGVSTimerEvent
             {
                 try
                 {            
-                    $Event = $Script:Timer1Svc.GetTimerEvents() | Where-Object -Property id -like -Value $Id
-                    $Event.ID = [GUID]::NewGuid()
-                    $Result = Set-LCNGVSTimerEvent -Event $Event                
+                    $TimerEvent = $Script:Timer1Svc.GetTimerEvents() | Where-Object -Property id -like -Value $Id
+                    $TimerEvent.ID = [GUID]::NewGuid()
+                    $Result = Set-LCNGVSTimerEvent -Event $TimerEvent                
                     if ($Result -eq $true)
                     {
-                        Get-LCNGVSTimerEvent -Id $Event.ID
+                        Get-LCNGVSTimerEvent -Id $TimerEvent.ID
                     }
                     else
                     {
