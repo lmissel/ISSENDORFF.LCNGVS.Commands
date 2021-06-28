@@ -380,8 +380,10 @@ function Connect-LCNGVS # Alias: 'Login-LCNGVSServer'
                     $Script:authSvc.CookieContainer = New-Object System.Net.CookieContainer # Cookies zwischenspeichern
                     $Script:LCNGVSSession = $Script:authSvc.Login($Credential.UserName, $Credential.GetNetworkCredential().Password, $CreatePersistentCookie) # Anmeldung
 
+                    $CookieUrl = ($uri.AbsoluteUri).ToString().Replace($uri.AbsolutePath,"")
+
                     Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Credentials: $($Credential | Out-String)"
-                    Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Cookies: $($Script:authSvc.CookieContainer.GetCookies("http://192.168.178.32") | Out-String)"
+                    Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Cookies: $($Script:authSvc.CookieContainer.GetCookies($CookieUrl) | Out-String)"
 
                     # EventHandler erzeugen
                     Write-Verbose "Step 2 - Registriere Ereignishandler in der PowerShell..."
