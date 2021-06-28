@@ -1,4 +1,5 @@
 ConvertFrom-StringData @'
+ErrorMessage0				=	Sie konnten nicht angemeldet werden, ueberpruefen Sie Ihre Angaben.
 ErrorMessage1				=	Sie muessen angemeldet sein, um diese Funktion ausfuehren zu koennen.
 ConnectLCNGVS				=	Sie werden mit dem Benutzer [{0}] angemeldet.
 DisconnectLCNGVS			=	Sie werden abgemeldet.
@@ -34,4 +35,6 @@ GetLCNGVSTrendLogValuesMultiple	= Ruft multiple Werte des angegeben TrendLog ab.
 GetLCNGVSAppSiriItem		=	Ruft das SiriItemWebService-Dictionary ab.
 InvokeLCNGVSAppSiriCommand	=	Fuehrt den Sprachbefehl [{0},{1}] aus.
 GetLCNGVSLogEntry			=	Ruft die Log-Eintraege aus dem Logbuch [{0}] ab.
+NoAccess					=	Der Zugriff auf den Webdienst wurde verweigert. Bitte melden Sie sich als ein Benutzer mit ausreichenden Rechten an.
+ResetLCNGVSAdministrators	=	Setzt das Kennwort aller als Typ Administrator bekannten Benutzer auf test123.
 '@
